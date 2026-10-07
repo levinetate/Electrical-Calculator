@@ -14,6 +14,7 @@ Field calculator for electricians, built for an electrical contracting business 
 - `capacitor.config.ts` — appId `com.levine.electricalcalculator`, appName "Electrical Calculator", webDir `www`.
 - `package.json` — `npm run sync` (copy www → iOS), `npm run ios` (sync + open Xcode, Mac only), `npm run serve` (local web server).
 - `README.md` — iOS build steps and PWA hosting/install steps.
+- `.github/workflows/pages.yml` — publishes `www/` to GitHub Pages (https://levinetate.github.io/Electrical-Calculator/) on every push to `main` that touches `www/`. Paths in `www/` must stay relative (the site lives under `/Electrical-Calculator/`).
 
 **After any change in `www/`, run `npx cap sync ios`** so `ios/App/App/public` matches (that folder is gitignored and regenerated).
 
