@@ -21,12 +21,12 @@ Bundle ID is `com.levine.electricalcalculator` (in `capacitor.config.ts` and the
 
 After editing anything in `www/`, run `npm run sync` (or `npm run ios`) so the iOS project gets the new files.
 
-## Web app (any phone, free)
-Upload the **`www`** folder to any https host:
-- **Netlify Drop:** app.netlify.com/drop, drag the `www` folder onto the page.
-- **GitHub Pages:** Settings → Pages, deploy from a branch.
+## Web app (any phone or computer, free)
+**Live at https://levinetate.github.io/Electrical-Calculator/**. It republishes automatically whenever `www/` changes on `main` (`.github/workflows/pages.yml`).
 
-Then on a phone: **iPhone** Safari → Share → **Add to Home Screen**; **Android** Chrome → ⋮ → **Install app**. Open it once with a signal; after that it works offline.
+One-time setup by the repo owner: Settings → Pages → Source: **GitHub Actions**, then re-run the "Publish web app" workflow from the Actions tab.
+
+Install it: **iPhone** Safari → Share → **Add to Home Screen**; **Android** Chrome → ⋮ → **Install app**; **Windows** Edge or Chrome → the install icon in the address bar (or ⋯ → Apps → Install). Open it once with a signal; after that it works offline.
 
 Links like `index.html#vd` open a calculator directly (`#gec`, `#bj`, `#egc`, `#rod`, `#par`, `#gen`, `#mot`, `#ld`, `#xf`, `#sb`, `#vd`, `#ev`, `#pv`, `#cf`, `#bx`, `#wc`, `#pie`, `#wa`, `#cc`).
 
