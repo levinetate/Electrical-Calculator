@@ -1,0 +1,10 @@
+{
+  "name": "electrical-calculator",
+  "version": "1.0.0",
+  "description": "Browser-based electrical calculator: Ohm's law, AC power, voltage drop, resistor networks, color codes and energy cost.",
+  "private": true,
+  "scripts": {
+    "test": "node --test"
+  },
+  "license": "MIT"
+}
