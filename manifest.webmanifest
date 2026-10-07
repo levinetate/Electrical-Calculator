@@ -1,0 +1,29 @@
+{
+  "id": "./",
+  "name": "Electrical Calculator",
+  "short_name": "Elec Calc",
+  "description": "NEC 2023 electrical calculators: grounding and bonding, parallel feeds, generators, motors, load calcs, transformers, MSB/MCC, voltage drop, EV charging, solar PV, conduit fill, and box sizing.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#eef1ec",
+  "theme_color": "#1f7a3a",
+  "lang": "en-US",
+  "dir": "ltr",
+  "categories": ["utilities", "productivity", "business"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Voltage Drop", "short_name": "VD", "url": "./index.html#vd", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Conduit Fill", "short_name": "Fill", "url": "./index.html#cf", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Motors", "short_name": "Motors", "url": "./index.html#mot", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Construction Calc", "short_name": "Ft-In", "url": "./index.html#cc", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Load Calc", "short_name": "Load", "url": "./index.html#ld", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}
