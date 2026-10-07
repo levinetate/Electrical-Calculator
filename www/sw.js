@@ -1,6 +1,6 @@
 // Offline support: cache the app shell on install, serve cache-first,
 // and keep a runtime copy of the Google Fonts files once they've loaded.
-const VERSION = "elec-calc-v14";
+const VERSION = "elec-calc-v15";
 const SHELL = [
   "./",
   "./index.html",
@@ -10,7 +10,14 @@ const SHELL = [
   "./icons/maskable-192.png",
   "./icons/maskable-512.png",
   "./icons/apple-touch-icon.png",
-  "./icons/favicon-32.png"
+  "./icons/favicon-32.png",
+  "./fonts/barlow-latin-400-normal.woff2",
+  "./fonts/barlow-latin-500-normal.woff2",
+  "./fonts/barlow-latin-600-normal.woff2",
+  "./fonts/barlow-condensed-latin-500-normal.woff2",
+  "./fonts/barlow-condensed-latin-600-normal.woff2",
+  "./fonts/barlow-condensed-latin-700-normal.woff2",
+  "./fonts/jetbrains-mono-latin-500-normal.woff2"
 ];
 
 self.addEventListener("install", (e) => {
