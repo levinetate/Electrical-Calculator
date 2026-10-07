@@ -2,14 +2,20 @@
 
 Field calculator for electricians, built for an electrical contracting business (service, diagnostics, repairs). All sizing follows **NEC 2023**; 2026 change summaries show no changes to Tables 250.66, 250.102(C)(1) or 250.122.
 
-**Goal of this project:** ship it as an iOS app (and Android later). Today it is an installable, offline web app (PWA). The planned path is to wrap it with **Capacitor** so the same `index.html` becomes the native app.
+**Goal of this project:** ship it as an iOS app (and Android later). The web app lives in `www/` and is wrapped with **Capacitor 8** into the native iOS project in `ios/`. The same `www/` folder also deploys as an installable, offline PWA.
 
 ## Files
-- `index.html` — the whole app: markup, CSS and JS in one file (~200 KB). No build step, no framework.
-- `manifest.webmanifest` — PWA name ("Elec Calc"), colors, icons, shortcuts.
-- `sw.js` — offline cache. **Bump `VERSION` (currently `elec-calc-v14`) every time `index.html` changes**, or installed phones keep the old copy.
-- `icons/` — app icons (192/512, maskable, apple-touch, favicon).
-- `README.md` — hosting and phone-install steps.
+- `www/index.html` — the whole app: markup, CSS and JS in one file (~200 KB). No build step, no framework.
+- `www/fonts/` — bundled woff2 fonts (Barlow, Barlow Condensed, JetBrains Mono, from @fontsource; OFL). No network fonts: the app must work fully offline.
+- `www/manifest.webmanifest` — PWA name ("Elec Calc"), colors, icons, shortcuts.
+- `www/sw.js` — PWA offline cache. **Bump `VERSION` (currently `elec-calc-v15`) every time anything in `www/` changes**, and add any new asset to its `SHELL` list.
+- `www/icons/` — PWA icons (192/512, maskable, apple-touch, favicon).
+- `ios/` — Capacitor-generated Xcode project (Swift Package Manager, no CocoaPods). App icon: `ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png` (1024×1024, opaque). Home-screen name `CFBundleDisplayName` = "Elec Calc" in `ios/App/App/Info.plist`.
+- `capacitor.config.ts` — appId `com.levine.electricalcalculator`, appName "Electrical Calculator", webDir `www`.
+- `package.json` — `npm run sync` (copy www → iOS), `npm run ios` (sync + open Xcode, Mac only), `npm run serve` (local web server).
+- `README.md` — iOS build steps and PWA hosting/install steps.
+
+**After any change in `www/`, run `npx cap sync ios`** so `ios/App/App/public` matches (that folder is gitignored and regenerated).
 
 ## How the page is organized
 - One `<section class="panel" id="p-xxx">` per calculator. A grouped `<select id="tool">` menu switches panels; a hidden `<nav>` of buttons (`data-p="p-xxx"`) does the actual show/hide. Add new calculators to **both**.
@@ -55,9 +61,10 @@ Field calculator for electricians, built for an electrical contracting business 
 - Must work at phone width (~400 px) with no sideways scroll.
 - Every table value was typed from the code book — when changing one, cite the table and double-check it.
 - Results are for reference; the footer disclaimer ("verify with the adopted code and the AHJ") stays.
-- Test by loading `index.html` in a browser (or jsdom) and reading the `.calc` blocks; there is no test suite yet.
+- Test by loading `www/index.html` in a browser (`npm run serve`, or jsdom/Playwright) and reading the `.calc` blocks; there is no test suite yet.
 
-## Next steps (owner's wish list)
-1. iOS app via Capacitor: `npm init`, `npm i @capacitor/core @capacitor/cli @capacitor/ios`, `npx cap init "Elec Calc" com.<company>.gbcalc --web-dir=.` (or move web files into `www/`), `npx cap add ios`, `npx cap open ios`, then build/sign in Xcode on a Mac. Needs an Apple Developer account.
-2. Bundle the Google Fonts locally so the native app needs no network.
-3. Android via `@capacitor/android` (Google Play requires 12 testers × 14 days closed testing for new personal accounts).
+## Status and next steps
+- Done: Capacitor iOS project, local fonts, iOS app icon and splash.
+- Next (needs the owner's Mac): open with `npm run ios`, set the signing team in Xcode, run on a device, then TestFlight/App Store (Apple Developer Program, $99/yr). App Store listing needs screenshots, a privacy policy URL, and a description.
+- Later: Android via `@capacitor/android` (Google Play requires 12 testers × 14 days closed testing for new personal accounts).
+- In the native app the service worker doesn't run (Capacitor serves files locally); `sw.js` registration fails silently by design.
