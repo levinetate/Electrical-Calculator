@@ -1098,12 +1098,14 @@ footer{color:var(--muted);font-size:.82rem}
     <button type="button" data-k="4">4</button><button type="button" data-k="5">5</button><button type="button" data-k="6">6</button><button type="button" class="op" data-k="×">×</button><button type="button" class="fr" data-k="-1/4">¼</button>
     <button type="button" data-k="1">1</button><button type="button" data-k="2">2</button><button type="button" data-k="3">3</button><button type="button" class="op" data-k="−">−</button><button type="button" class="fr" data-k="-1/8">⅛</button>
     <button type="button" data-k="0">0</button><button type="button" data-k=".">.</button><button type="button" data-k=" " aria-label="Space">␣</button><button type="button" class="op" data-k="+">+</button><button type="button" class="fr" data-k="-1/16">1/16</button>
+    <button type="button" class="u" data-k="mm">mm</button><button type="button" class="u" data-k="cm">cm</button><button type="button" class="u" data-k="m">m</button><button type="button" class="fr" data-k="-3/4">¾</button><button type="button" class="fr" data-k="-3/8">⅜</button>
     <button type="button" class="op" data-k="(">(</button><button type="button" class="op" data-k=")">)</button><button type="button" class="op" data-k="ans">Ans</button><button type="button" class="eq" data-k="=" style="grid-column:span 2">=</button>
   </div>
   <div class="result" id="cc-out"></div>
   <div class="cc-hist" id="cc-hist"></div>
   <ul class="notes">
     <li>Type or tap: <code>5' 7-3/8"</code>, <code>7 3/8"</code>, <code>3/4</code>, <code>2.5'</code>. Fraction keys (½ ¼ ⅛ 1/16) attach to the number before them: 7 then ⅛ gives 7-1/8.</li>
+    <li>Metric works in the same line: <code>1200mm</code>, <code>47.3 cm + 1-1/32"</code>, <code>2.4 m − 3' 6"</code>. The answer shows feet-inches to the nearest 1/16″ plus mm, cm and m.</li>
     <li>Length × length gives square feet; × three lengths gives cubic feet and yards. Length ÷ length gives a plain number (how many fit).</li>
     <li>Tap a line in the history to reuse its answer.</li>
   </ul>
@@ -2235,6 +2237,11 @@ function ccTok(src){
     m=s.slice(i).match(/^(\d+)\/(\d+)/);if(m){t.push({k:"num",v:m[1]/m[2],fr:1});i+=m[0].length;continue}
     m=s.slice(i).match(/^\d+(?:\.\d+)?|^\.\d+/);if(m){t.push({k:"num",v:+m[0]});i+=m[0].length;continue}
     if(c==="'"){t.push({k:"ft"});i++;continue} if(c==='"'){t.push({k:"in"});i++;continue}
+    m=s.slice(i).match(/^(mm|cm|m|yds?|yards?|ft|feet|foot|in|inch(?:es)?)(?![a-z])/i); // unit words: 1200mm, 3.5 m, 2 ft
+    if(m){const u=m[1].toLowerCase();
+      if(u==="ft"||u==="feet"||u==="foot")t.push({k:"ft"});else if(u==="in"||u.startsWith("inch"))t.push({k:"in"});
+      else t.push({k:"u",f:u==="mm"?1/25.4:u==="cm"?1/2.54:u==="m"?1/0.0254:36}); // f = inches per unit
+      i+=m[0].length;continue}
     if("+-−×÷/()".includes(c)){t.push({k:"op",v:c==="-"?"−":c==="/"?"÷":c});i++;continue}
     throw new Error(`Can't read "${c}"`);
   }
@@ -2249,7 +2256,7 @@ function ccParse(src,bare){
     if(k.k==="op"&&k.v==="−"){nx();const r=prim();return{v:-r.v,d:r.d,b:r.b}}
     if(k.k!=="num")throw new Error("Expected a number");
     let ft=null,inch=0,hasIn=false,nums=[];
-    while(peek()&&peek().k==="num"){nums.push(nx().v);if(peek()&&peek().k==="ft"){nx();ft=(ft||0)+nums.reduce((a,b)=>a+b,0);nums=[]}else if(peek()&&peek().k==="in"){nx();inch+=nums.reduce((a,b)=>a+b,0);nums=[];hasIn=true}}
+    while(peek()&&peek().k==="num"){nums.push(nx().v);if(peek()&&peek().k==="u"){const f=nx().f;inch+=nums.reduce((a,b)=>a+b,0)*f;nums=[];hasIn=true}else if(peek()&&peek().k==="ft"){nx();ft=(ft||0)+nums.reduce((a,b)=>a+b,0);nums=[]}else if(peek()&&peek().k==="in"){nx();inch+=nums.reduce((a,b)=>a+b,0);nums=[];hasIn=true}}
     if(nums.length){const n=nums.reduce((a,b)=>a+b,0);
       if(ft!==null||hasIn){inch+=n;hasIn=true}
       else return{v:n,d:0,b:true};}
@@ -2282,7 +2289,7 @@ function ccCalc(commit){
   let main,sub,pl="";
   if(r.d===1){const err=Math.abs(Math.round(r.v*den)/den-r.v);
     main=ftIn(r.v,den);sub=err>1e-6?`rounded to nearest 1/${den}″ (off by ${(err).toFixed(4)}″)`:"exact";
-    pl=plate("Total inches",inStr(r.v,den),`${r.v.toFixed(4)} in`,true)+plate("Decimal feet",(r.v/12).toFixed(4),"ft")+plate("Metric",(r.v*25.4).toFixed(1),`mm · ${(r.v*0.0254).toFixed(3)} m`)+plate("Yards",(r.v/36).toFixed(3),"yd");}
+    pl=plate("Total inches",inStr(r.v,den),`${r.v.toFixed(4)} in`,true)+plate("Decimal feet",(r.v/12).toFixed(4),"ft")+plate("Metric",(r.v*25.4).toFixed(1),`mm · ${(r.v*2.54).toFixed(2)} cm · ${(r.v*0.0254).toFixed(3)} m`)+plate("Yards",(r.v/36).toFixed(3),"yd");}
   else if(r.d===2){const sf=r.v/144;main=`${(+sf.toFixed(3)).toLocaleString()} ft²`;sub=`${(+r.v.toFixed(2)).toLocaleString()} in²`;
     pl=plate("Square feet",(+sf.toFixed(3)).toLocaleString(),"ft²",true)+plate("Square inches",(+r.v.toFixed(2)).toLocaleString(),"in²")+plate("Square yards",(sf/9).toFixed(3),"yd²")+plate("Square meters",(r.v*0.00064516).toFixed(3),"m²");}
   else if(r.d===3){const cf=r.v/1728;main=`${(+cf.toFixed(3)).toLocaleString()} ft³`;sub=`${(cf/27).toFixed(3)} yd³`;
@@ -2293,19 +2300,25 @@ function ccCalc(commit){
   if(commit){ccAns=r;ccHist.unshift({src,main});ccHist.length=Math.min(ccHist.length,8);
     $("cc-hist").innerHTML=ccHist.map((h,i)=>`<button type="button" data-h="${i}"><span>${esc(h.src)}</span><span>= ${esc(h.main)}</span></button>`).join("");}
 }
-function ccIns(txt){const el=$("cc-in"),a=el.selectionStart??el.value.length,b=el.selectionEnd??el.value.length;el.value=el.value.slice(0,a)+txt+el.value.slice(b);const c=a+txt.length;try{el.setSelectionRange(c,c)}catch(e){}ccCalc(false)}
+// Keypad cursor. Once the field has lost focus to a key, browsers can ignore setSelectionRange and report 0,
+// which put each key in front of the last one, so the keypad keeps its own caret (null = end of text).
+let ccCur=null;
+function ccCaret(){const el=$("cc-in"),n=el.value.length;if(document.activeElement===el)return el.selectionStart??n;return ccCur==null?n:Math.min(ccCur,n)}
+function ccIns(txt){const el=$("cc-in"),f=document.activeElement===el,a=ccCaret(),b=f?(el.selectionEnd??a):a;el.value=el.value.slice(0,a)+txt+el.value.slice(b);const c=a+txt.length;ccCur=c;try{el.setSelectionRange(c,c)}catch(e){}ccCalc(false)}
 $("cc-keys").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;const k=b.dataset.k,el=$("cc-in");
-  if(k==="c"){el.value="";ccCalc(false);return}
-  if(k==="bs"){const a=el.selectionStart??el.value.length;if(a>0){el.value=el.value.slice(0,a-1)+el.value.slice(a);try{el.setSelectionRange(a-1,a-1)}catch(e){}}ccCalc(false);return}
-  if(k==="="){ccCalc(true);if(ccAns&&ccAns.d===1){el.value=ftIn(ccAns.v,+$("cc-prec").value).replace("′","'").replace("″",'"').replace("−","-")}else if(ccAns&&ccAns.d===0){el.value=String(+ccAns.v.toFixed(4))}return}
+  if(k==="c"){el.value="";ccCur=null;ccCalc(false);return}
+  if(k==="bs"){const a=ccCaret();if(a>0){el.value=el.value.slice(0,a-1)+el.value.slice(a);ccCur=a-1;try{el.setSelectionRange(a-1,a-1)}catch(e){}}ccCalc(false);return}
+  if(k==="="){ccCalc(true);ccCur=null;if(ccAns&&ccAns.d===1){el.value=ftIn(ccAns.v,+$("cc-prec").value).replace("′","'").replace("″",'"').replace("−","-")}else if(ccAns&&ccAns.d===0){el.value=String(+ccAns.v.toFixed(4))}return}
   if(k==="ans"){if(ccAns&&ccAns.d===1)ccIns(ftIn(ccAns.v,+$("cc-prec").value).replace("′","'").replace("″",'"'));else if(ccAns)ccIns(String(+ccAns.v.toFixed(4)));return}
-  if(k.startsWith("-")){const v=el.value,a=el.selectionStart??v.length,prev=v.slice(0,a);ccIns(/\d\s*$/.test(prev)&&!/\/\d+\s*$/.test(prev)?k:k.slice(1));return}
-  if("+−×÷".includes(k)){ccIns(` ${k} `);return}
+  if(k.startsWith("-")){const v=el.value,a=ccCaret(),prev=v.slice(0,a);ccIns(/\d\s*$/.test(prev)&&!/\/\d+\s*$/.test(prev)?k:k.slice(1));return}
+  if("+−×÷".includes(k)){ccIns((/\s$/.test(el.value.slice(0,ccCaret()))?"":" ")+`${k} `);return}
+  if(k==="mm"||k==="cm"||k==="m"){const v=el.value,a=ccCaret();ccIns((/[a-z'"]\s*$/i.test(v.slice(0,a))?" ":"")+k+" ");return}
   ccIns(k);
 });
 $("cc-in").addEventListener("input",()=>ccCalc(false));
+["input","keyup","click"].forEach(ev=>$("cc-in").addEventListener(ev,e=>{ccCur=e.target.selectionStart}));
 $("cc-in").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();$("cc-keys").querySelector('[data-k="="]').click()}});
-$("cc-hist").addEventListener("click",e=>{const b=e.target.closest("[data-h]");if(!b)return;$("cc-in").value=ccHist[+b.dataset.h].main.replace(/′/g,"'").replace(/″/g,'"').replace("−","-").replace(/ ft[²³]$/,"");ccCalc(false)});
+$("cc-hist").addEventListener("click",e=>{const b=e.target.closest("[data-h]");if(!b)return;$("cc-in").value=ccHist[+b.dataset.h].main.replace(/′/g,"'").replace(/″/g,'"').replace("−","-").replace(/ ft[²³]$/,"");ccCur=null;ccCalc(false)});
 function spCalc(){
   const den=+$("cc-prec").value, n=Math.max(1,Math.round(v("sp-n"))), t=$("sp-t").value;
   let L;try{const r=ccParse($("sp-len").value,"in");L=r.d===1?r.v:null}catch(e){L=null}
