@@ -33,6 +33,12 @@ Links like `index.html#vd` open a calculator directly (`#gec`, `#bj`, `#egc`, `#
 ## Updating the calculator
 Edit `www/index.html`, then bump `VERSION` at the top of `www/sw.js` (e.g. `elec-calc-v16`) so installed web apps refresh, and run `npm run sync` for iOS.
 
+## App Store
+Listing text, privacy answers and review notes are in the "Elec Calc — App Store Listing" doc. Screenshots (6.9″, 1320 × 2868) are in `appstore/screenshots/`; the privacy policy is [PRIVACY.md](PRIVACY.md).
+
+## Support
+Questions or problems: [your business email]
+
 ## Files
 - `www/index.html`: the whole calculator (markup, styles, and code in one file)
 - `www/fonts/`: bundled fonts (Barlow, Barlow Condensed, JetBrains Mono; SIL Open Font License)
