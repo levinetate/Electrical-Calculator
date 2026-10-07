@@ -86,3 +86,57 @@ test('SI formatting and parsing', () => {
   assert.ok(Number.isNaN(C.parseSI('abc')));
   assert.ok(Number.isNaN(C.parseSI('')));
 });
+
+test('standard OCPD ratings and ampacity lookup', () => {
+  assert.equal(C.nextStandardOCPD(20), 20);
+  assert.equal(C.nextStandardOCPD(20.1), 25);
+  assert.equal(C.nextStandardOCPD(7000), null);
+  assert.equal(C.ampacity('12', 'cu', 75), 25);
+  assert.equal(C.ampacity('14', 'al', 75), null);
+  assert.equal(C.conductorForAmpacity(51, 'cu', 75), '6');
+});
+
+test('conductor protection limits', () => {
+  // 240.4(D): 12 Cu is 25 A at 75 °C but limited to 20 A.
+  assert.equal(C.maxOCPDForConductor('12', 'cu', 75), 20);
+  // 240.4(B): 1 AWG Cu at 75 °C is 130 A; next standard size is 150 A.
+  assert.equal(C.maxOCPDForConductor('1', 'cu', 75), 150);
+});
+
+test('branch circuit sizing', () => {
+  // 16 A continuous → 20 A required → 20 A breaker, 12 Cu at 60 °C.
+  assert.deepEqual(C.branchCircuit({ continuous: 16, material: 'cu', terminalTemp: 60 }),
+    { load: 16, required: 20, breaker: 20, conductor: '12', conductorAmpacity: 20 });
+  // 24 A non-continuous → 25 A breaker; 12 Cu is limited to 20 A so 10 Cu.
+  assert.equal(C.branchCircuit({ continuous: 0, nonContinuous: 24, material: 'cu', terminalTemp: 75 }).conductor, '10');
+  // 130 A → 150 A breaker; 1 AWG Cu (130 A) allowed by next-size-up rule.
+  const r = C.branchCircuit({ continuous: 0, nonContinuous: 130, material: 'cu', terminalTemp: 75 });
+  assert.equal(r.breaker, 150);
+  assert.equal(r.conductor, '1');
+  assert.throws(() => C.branchCircuit({ continuous: 0, material: 'cu', terminalTemp: 75 }));
+});
+
+test('motor circuit from NEC tables', () => {
+  assert.equal(C.motorFLA({ phase: 'single', voltage: 230, hp: '1' }), 8);
+  const m = C.motorCircuit({ phase: 'three', voltage: 460, hp: '10', material: 'cu', terminalTemp: 75 });
+  assert.equal(m.fla, 14);
+  close(m.minAmpacity, 17.5);
+  assert.equal(m.conductor, '14');
+  assert.equal(m.breaker, 35);          // 250 % = 35
+  assert.equal(m.dualElementFuse, 25);  // 175 % = 24.5 → 25
+  assert.equal(m.nonTimeDelayFuse, 45); // 300 % = 42 → 45
+  assert.throws(() => C.motorFLA({ phase: 'three', voltage: 120, hp: '10' }));
+});
+
+test('conduit fill', () => {
+  assert.equal(C.maxFillPercent(1), 53);
+  assert.equal(C.maxFillPercent(2), 31);
+  assert.equal(C.maxFillPercent(5), 40);
+  const f = C.conduitFill({ type: 'emt', size: '1/2', wires: [{ size: '12', qty: 4 }] });
+  close(f.fillPercent, (4 * 0.0133 / 0.304) * 100);
+  assert.equal(f.ok, true);
+  // Two 6 AWG in 1/2" EMT: 33.4 % > 31 %.
+  assert.equal(C.conduitFill({ type: 'emt', size: '1/2', wires: [{ size: '6', qty: 2 }] }).ok, false);
+  assert.equal(C.smallestConduit('emt', [{ size: '10', qty: 9 }]), '3/4');
+  assert.equal(C.smallestConduit('emt', [{ size: '500', qty: 30 }]), null);
+});

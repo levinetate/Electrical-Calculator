@@ -185,11 +185,7 @@
       try { r = C.voltageDrop(opts); } catch (e) { meterError(out, 'Voltage drop', e.message); return; }
       const min = C.minWireForDrop(opts, max);
       const status = r.percent <= max ? ['ok', 'Within limit'] : r.percent <= max * 5 / 3 ? ['warn', 'Over limit'] : ['bad', 'Far over limit'];
-      const scale = Math.max(max * 2, r.percent * 1.1);
-      const gauge =
-        `<div class="gauge" role="img" aria-label="${r.percent.toFixed(2)}% of ${max}% allowed">` +
-        `<span style="width:${Math.min(100, (r.percent / scale) * 100)}%"></span>` +
-        `<i style="left:${(max / scale) * 100}%"></i></div>`;
+      const bar = gauge(r.percent, max, `${r.percent.toFixed(2)}% of ${max}% allowed`);
       meter(out, {
         tag: `${C.wireLabel(opts.size)} ${opts.material === 'cu' ? 'Cu' : 'Al'}`,
         primary: `${r.percent.toFixed(2)} %`,
@@ -199,7 +195,7 @@
           ['Conductor', `${r.ohmsPerKft} Ω/kft`],
           [`Min. for ≤${max}%`, min ? C.wireLabel(min) : 'Larger than 500 kcmil'],
         ],
-        extra: gauge + `<div><span class="pill ${status[0]}">${status[1]}</span></div>`,
+        extra: bar + `<div><span class="pill ${status[0]}">${status[1]}</span></div>`,
       });
     }
     ['vd-mat', 'vd-size', 'vd-unit'].forEach((id) => document.getElementById(id).addEventListener('change', run));
@@ -311,6 +307,151 @@
 
     segmented('cc-count', (v) => build(Number(v)));
     build(4);
+  })();
+
+  function gauge(percent, limit, label) {
+    const scale = Math.max(limit * 2, percent * 1.1);
+    return `<div class="gauge" role="img" aria-label="${esc(label)}">` +
+      `<span style="width:${Math.min(100, (percent / scale) * 100)}%"></span>` +
+      `<i style="left:${(limit / scale) * 100}%"></i></div>`;
+  }
+
+  const matName = (m) => (m === 'cu' ? 'Cu' : 'Al');
+  const fillOptions = (sel, items, selected) => {
+    sel.innerHTML = items.map(([v, text]) => `<option value="${esc(v)}">${esc(text)}</option>`).join('');
+    if (items.some(([v]) => String(v) === String(selected))) sel.value = selected;
+  };
+
+  // -------------------------------------------------------- Breaker & wire
+  (function () {
+    const out = $('#bk-out');
+
+    function run() {
+      const material = $('#bk-mat').value;
+      const terminalTemp = Number($('#bk-temp').value);
+      const cont = num('bk-cont');
+      const non = $('#bk-non').value.trim() === '' ? 0 : num('bk-non');
+      let r;
+      try { r = C.branchCircuit({ continuous: cont, nonContinuous: non, material, terminalTemp }); } catch (e) { meterError(out, 'Breaker & wire', e.message); return; }
+      meter(out, {
+        tag: `${terminalTemp} °C ${matName(material)}`,
+        primary: `${r.breaker} A`,
+        rows: [
+          ['Total load', fmt(r.load, 'A')],
+          ['Sized at', fmt(r.required, 'A')],
+          ['Conductor', r.conductor ? `${C.wireLabel(r.conductor)} ${matName(material)}` : 'Over 500 kcmil'],
+          ['Ampacity', r.conductorAmpacity ? `${r.conductorAmpacity} A` : '—'],
+        ],
+        extra: r.conductor ? '' : '<div class="err">No single conductor up to 500 kcmil fits. Consider parallel sets.</div>',
+      });
+    }
+    ['bk-cont', 'bk-non'].forEach((id) => document.getElementById(id).addEventListener('input', run));
+    ['bk-mat', 'bk-temp'].forEach((id) => document.getElementById(id).addEventListener('change', run));
+    run();
+  })();
+
+  // --------------------------------------------------------- Motor circuit
+  (function () {
+    const out = $('#mo-out');
+    const hpSel = $('#mo-hp');
+    const vSel = $('#mo-v');
+    const phase = segmented('mo-phase', () => { populate(); run(); });
+
+    function populate() {
+      const t = C.MOTOR_FLA[phase()];
+      fillOptions(hpSel, t.rows.map((r) => [r[0], `${r[0]} hp`]), hpSel.value || '10');
+      fillOptions(vSel, t.voltages.map((v) => [v, `${v} V`]), vSel.value || '460');
+      if (!hpSel.value) hpSel.selectedIndex = 0;
+      if (!vSel.value) vSel.selectedIndex = vSel.options.length - 1;
+    }
+
+    function run() {
+      const material = $('#mo-mat').value;
+      const terminalTemp = Number($('#mo-temp').value);
+      let r;
+      try {
+        r = C.motorCircuit({ phase: phase(), voltage: Number(vSel.value), hp: hpSel.value, material, terminalTemp });
+      } catch (e) { meterError(out, 'Motor', e.message); return; }
+      meter(out, {
+        tag: `${hpSel.value} hp ${vSel.value} V ${phase() === 'three' ? '3φ' : '1φ'}`,
+        primary: `${r.fla} A FLC`,
+        rows: [
+          ['Min. ampacity', fmt(r.minAmpacity, 'A')],
+          ['Conductor', r.conductor ? `${C.wireLabel(r.conductor)} ${matName(material)}` : 'Over 500 kcmil'],
+          ['Inverse-time CB', r.breaker ? `${r.breaker} A max` : '—'],
+          ['Dual-element fuse', r.dualElementFuse ? `${r.dualElementFuse} A max` : '—'],
+          ['Non-time-delay fuse', r.nonTimeDelayFuse ? `${r.nonTimeDelayFuse} A max` : '—'],
+          ['Overload SF≥1.15', fmt(r.overload125, 'A')],
+          ['Overload, other', fmt(r.overload115, 'A')],
+        ],
+      });
+    }
+    [hpSel, vSel, $('#mo-mat'), $('#mo-temp')].forEach((el) => el.addEventListener('change', run));
+    populate();
+    hpSel.value = '10';
+    vSel.value = '460';
+    run();
+  })();
+
+  // ---------------------------------------------------------- Conduit fill
+  (function () {
+    const out = $('#cf-out');
+    const typeSel = $('#cf-type');
+    const sizeSel = $('#cf-size');
+    const list = $('#cf-list');
+    const wireSizes = C.SIZE_ORDER.filter((s) => C.THHN_AREA[s] !== undefined);
+    let counter = 0;
+
+    fillOptions(typeSel, Object.entries(C.CONDUIT_AREA).map(([k, v]) => [k, v.label]), 'emt');
+    fillOptions(sizeSel, C.TRADE_SIZES.map((s) => [s, `${s}"`]), '3/4');
+
+    function addRow(qty = 1, size = '12') {
+      counter += 1;
+      const row = document.createElement('div');
+      row.className = 'r wire';
+      row.innerHTML =
+        `<div class="input-unit"><input id="cf-q${counter}" type="number" min="0" step="1" inputmode="numeric" aria-label="Quantity" value="${qty}"><span class="unit">×</span></div>` +
+        `<select id="cf-s${counter}" aria-label="Conductor size">${wireSizes.map((s) => `<option value="${s}">${C.wireLabel(s)} THHN</option>`).join('')}</select>` +
+        `<button type="button" class="icon-btn" aria-label="Remove conductor size">×</button>`;
+      $('select', row).value = size;
+      $('input', row).addEventListener('input', run);
+      $('select', row).addEventListener('change', run);
+      $('button', row).addEventListener('click', () => {
+        if (list.children.length > 1) row.remove();
+        else $('input', row).value = '0';
+        run();
+      });
+      list.appendChild(row);
+      return row;
+    }
+
+    function run() {
+      const wires = $$('.r', list).map((r) => ({ qty: Number($('input', r).value || 0), size: $('select', r).value }));
+      const type = typeSel.value;
+      let r;
+      try { r = C.conduitFill({ type, size: sizeSel.value, wires }); } catch (e) { meterError(out, 'Conduit fill', e.message); return; }
+      const smallest = C.smallestConduit(type, wires);
+      const status = r.ok ? ['ok', 'Within fill limit'] : ['bad', 'Overfilled'];
+      meter(out, {
+        tag: `${sizeSel.value}" ${C.CONDUIT_AREA[type].label}`,
+        primary: `${r.fillPercent.toFixed(1)} %`,
+        rows: [
+          ['Conductors', String(r.count)],
+          ['Allowed fill', `${r.allowedPercent} %`],
+          ['Wire area', `${r.wireArea.toFixed(4)} in²`],
+          ['Conduit area', `${r.conduitArea.toFixed(3)} in²`],
+          ['Smallest that fits', smallest ? `${smallest}"` : 'Over 4"'],
+        ],
+        extra: gauge(r.fillPercent, r.allowedPercent, `${r.fillPercent.toFixed(1)}% of ${r.allowedPercent}% allowed`) +
+          `<div><span class="pill ${status[0]}">${status[1]}</span></div>`,
+      });
+    }
+
+    [typeSel, sizeSel].forEach((el) => el.addEventListener('change', run));
+    $('#cf-add').addEventListener('click', () => { $('input', addRow(1, '12')).focus(); run(); });
+    addRow(3, '8');
+    addRow(1, '10');
+    run();
   })();
 
   // ---------------------------------------------------------------- Energy

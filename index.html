@@ -164,6 +164,7 @@ input.computed { color: var(--muted); font-style: italic; }
 .rlist { display: grid; gap: 8px; }
 .rlist .r { display: grid; grid-template-columns: 2.2rem minmax(0, 1fr) auto; gap: 8px; align-items: center; }
 .rlist .idx { font: 600 0.9rem var(--font-display); color: var(--muted); letter-spacing: 0.05em; }
+.rlist .r.wire { grid-template-columns: 5.5rem minmax(0, 1fr) auto; }
 .icon-btn { appearance: none; border: 1px solid var(--line); background: var(--bg); color: var(--muted); border-radius: var(--radius); width: 36px; height: 36px; cursor: pointer; font-size: 1.1rem; line-height: 1; }
 .icon-btn:hover { color: var(--bad); border-color: var(--bad); }
 
@@ -209,6 +210,9 @@ footer p { margin: 0; max-width: 80ch; }
       <button role="tab" id="tab-ohm" aria-controls="ohm" data-tab="ohm">Ohm's Law<span class="formula">V = I·R · P = V·I</span></button>
       <button role="tab" id="tab-power" aria-controls="power" data-tab="power">AC / DC Power<span class="formula">P = √3·V·I·pf</span></button>
       <button role="tab" id="tab-drop" aria-controls="drop" data-tab="drop">Voltage Drop<span class="formula">Vd = k·L·R·I</span></button>
+      <button role="tab" id="tab-breaker" aria-controls="breaker" data-tab="breaker">Breaker &amp; Wire<span class="formula">125% cont. + non-cont.</span></button>
+      <button role="tab" id="tab-motor" aria-controls="motor" data-tab="motor">Motor Circuit<span class="formula">NEC 430.250</span></button>
+      <button role="tab" id="tab-conduit" aria-controls="conduit" data-tab="conduit">Conduit Fill<span class="formula">≤ 40% for 3+ wires</span></button>
       <button role="tab" id="tab-network" aria-controls="network" data-tab="network">Resistor Network<span class="formula">1/R = Σ 1/Rn</span></button>
       <button role="tab" id="tab-color" aria-controls="color" data-tab="color">Color Code<span class="formula">4 &amp; 5 band</span></button>
       <button role="tab" id="tab-energy" aria-controls="energy" data-tab="energy">Energy Cost<span class="formula">kWh × rate</span></button>
@@ -283,6 +287,61 @@ footer p { margin: 0; max-width: 80ch; }
           <p class="hint">Sizing here checks voltage drop only. Confirm ampacity, terminal ratings and local code separately.</p>
         </div>
         <div class="meter" aria-live="polite" id="vd-out"></div>
+      </section>
+
+      <!-- Breaker & wire -->
+      <section class="panel" id="breaker" role="tabpanel" aria-labelledby="tab-breaker" hidden>
+        <div>
+          <h2>Breaker &amp; Wire Size</h2>
+          <p class="lede">Overcurrent device at 125% of continuous load plus 100% of non-continuous load, with a conductor from NEC Table 310.16 that the breaker protects.</p>
+          <div class="fields">
+            <div class="field"><label for="bk-cont">Continuous load (3 h+)</label><div class="input-unit"><input id="bk-cont" inputmode="decimal" autocomplete="off" value="32"><span class="unit">A</span></div></div>
+            <div class="field"><label for="bk-non">Non-continuous load</label><div class="input-unit"><input id="bk-non" inputmode="decimal" autocomplete="off" value="0"><span class="unit">A</span></div></div>
+            <div class="field"><label for="bk-mat">Conductor</label><select id="bk-mat"><option value="cu">Copper</option><option value="al">Aluminum</option></select></div>
+            <div class="field"><label for="bk-temp">Terminal rating</label><select id="bk-temp"><option value="60">60 °C (≤100 A, typical)</option><option value="75" selected>75 °C</option></select></div>
+          </div>
+          <p class="hint">Assumes no more than three current-carrying conductors and 30 °C ambient. Apply adjustment and correction factors for other conditions.</p>
+        </div>
+        <div class="meter" aria-live="polite" id="bk-out"></div>
+      </section>
+
+      <!-- Motor circuit -->
+      <section class="panel" id="motor" role="tabpanel" aria-labelledby="tab-motor" hidden>
+        <div>
+          <h2>Motor Circuit</h2>
+          <p class="lede">Induction motor full-load current from NEC Tables 430.248 and 430.250, with branch conductor and protection sizes.</p>
+          <div class="fields">
+            <div class="field full"><span class="legend">Motor</span>
+              <div class="seg" id="mo-phase" role="group" aria-label="Motor phase">
+                <button type="button" data-v="single">1-Phase</button>
+                <button type="button" data-v="three" aria-pressed="true">3-Phase</button>
+              </div>
+            </div>
+            <div class="field"><label for="mo-hp">Horsepower</label><select id="mo-hp"></select></div>
+            <div class="field"><label for="mo-v">Voltage</label><select id="mo-v"></select></div>
+            <div class="field"><label for="mo-mat">Conductor</label><select id="mo-mat"><option value="cu">Copper</option><option value="al">Aluminum</option></select></div>
+            <div class="field"><label for="mo-temp">Terminal rating</label><select id="mo-temp"><option value="60">60 °C</option><option value="75" selected>75 °C</option></select></div>
+          </div>
+          <p class="hint">Size overloads from the motor nameplate current, not the table. Protection values are maximums from Table 430.52, rounded up to the next standard size.</p>
+        </div>
+        <div class="meter" aria-live="polite" id="mo-out"></div>
+      </section>
+
+      <!-- Conduit fill -->
+      <section class="panel" id="conduit" role="tabpanel" aria-labelledby="tab-conduit" hidden>
+        <div>
+          <h2>Conduit Fill</h2>
+          <p class="lede">THHN / THWN-2 conductors in conduit, checked against NEC Chapter 9 Table 1: 53% for one wire, 31% for two, 40% for three or more.</p>
+          <div class="fields">
+            <div class="field"><label for="cf-type">Conduit</label><select id="cf-type"></select></div>
+            <div class="field"><label for="cf-size">Trade size</label><select id="cf-size"></select></div>
+          </div>
+          <div class="field" style="margin-top:14px"><span class="legend">Conductors</span></div>
+          <div class="rlist" id="cf-list" style="margin-top:6px"></div>
+          <div class="row" style="margin-top:12px"><button class="btn" id="cf-add" type="button">+ Add conductor size</button></div>
+          <p class="hint">Include equipment grounding conductors. Nipples 24 in or shorter may be filled to 60%.</p>
+        </div>
+        <div class="meter" aria-live="polite" id="cf-out"></div>
       </section>
 
       <!-- Resistor network -->

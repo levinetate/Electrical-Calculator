@@ -158,6 +158,280 @@
     return null;
   }
 
+  // -------------------------------------------------- Ampacity & protection
+
+  // Allowable ampacity, not more than three current-carrying conductors in
+  // raceway, 30 °C ambient (NEC Table 310.16). [60 °C, 75 °C, 90 °C]
+  const AMPACITY = {
+    '14': { cu: [15, 20, 25] },
+    '12': { cu: [20, 25, 30], al: [15, 20, 25] },
+    '10': { cu: [30, 35, 40], al: [25, 30, 35] },
+    '8': { cu: [40, 50, 55], al: [35, 40, 45] },
+    '6': { cu: [55, 65, 75], al: [40, 50, 55] },
+    '4': { cu: [70, 85, 95], al: [55, 65, 75] },
+    '3': { cu: [85, 100, 115], al: [65, 75, 85] },
+    '2': { cu: [95, 115, 130], al: [75, 90, 100] },
+    '1': { cu: [110, 130, 145], al: [85, 100, 115] },
+    '1/0': { cu: [125, 150, 170], al: [100, 120, 135] },
+    '2/0': { cu: [145, 175, 195], al: [115, 135, 150] },
+    '3/0': { cu: [165, 200, 225], al: [130, 155, 175] },
+    '4/0': { cu: [195, 230, 260], al: [150, 180, 205] },
+    '250': { cu: [215, 255, 290], al: [170, 205, 230] },
+    '300': { cu: [240, 285, 320], al: [195, 230, 260] },
+    '350': { cu: [260, 310, 350], al: [210, 250, 280] },
+    '400': { cu: [280, 335, 380], al: [225, 270, 305] },
+    '500': { cu: [320, 380, 430], al: [260, 310, 350] },
+  };
+  const TEMP_COLUMN = { 60: 0, 75: 1, 90: 2 };
+
+  // Conductor sizes smallest to largest. Iterate this rather than
+  // Object.keys(), which would put integer-like keys such as '1' and '250' first.
+  const SIZE_ORDER = WIRE_TABLE.map((r) => r.size);
+
+  // Small-conductor overcurrent limits (NEC 240.4(D)).
+  const SMALL_CONDUCTOR_MAX_OCPD = {
+    cu: { '14': 15, '12': 20, '10': 30 },
+    al: { '12': 15, '10': 25 },
+  };
+
+  // Standard ampere ratings for fuses and inverse-time breakers (NEC 240.6(A)).
+  const STANDARD_OCPD = [
+    15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100, 110, 125, 150, 175,
+    200, 225, 250, 300, 350, 400, 450, 500, 600, 700, 800, 1000, 1200, 1600,
+    2000, 2500, 3000, 4000, 5000, 6000,
+  ];
+
+  /** Smallest standard OCPD rating at or above `amps`, or null if beyond the table. */
+  function nextStandardOCPD(amps) {
+    return STANDARD_OCPD.find((r) => r >= amps - 1e-9) ?? null;
+  }
+
+  /** Largest standard OCPD rating at or below `amps`, or null if below 15 A. */
+  function prevStandardOCPD(amps) {
+    let best = null;
+    for (const r of STANDARD_OCPD) if (r <= amps + 1e-9) best = r;
+    return best;
+  }
+
+  function ampacity(size, material, tempC) {
+    const row = AMPACITY[size];
+    const col = TEMP_COLUMN[tempC];
+    if (col === undefined) throw new Error('Temperature rating must be 60, 75 or 90 °C.');
+    return row && row[material] ? row[material][col] : null;
+  }
+
+  /** Smallest conductor whose ampacity is at least `amps`, or null. */
+  function conductorForAmpacity(amps, material, tempC) {
+    for (const size of SIZE_ORDER) {
+      const a = ampacity(size, material, tempC);
+      if (a !== null && a >= amps) return size;
+    }
+    return null;
+  }
+
+  /**
+   * Largest OCPD a conductor may be protected by: 240.4(D) for small sizes,
+   * otherwise its ampacity, or the next standard size up when that rating is
+   * 800 A or less (240.4(B)).
+   */
+  function maxOCPDForConductor(size, material, tempC) {
+    const a = ampacity(size, material, tempC);
+    if (a === null) return null;
+    const small = SMALL_CONDUCTOR_MAX_OCPD[material][size];
+    const next = nextStandardOCPD(a);
+    const allowed = next !== null && next <= 800 ? next : prevStandardOCPD(a);
+    return small !== undefined ? Math.min(small, allowed) : allowed;
+  }
+
+  /**
+   * Branch circuit / feeder sizing: OCPD at 125 % of continuous plus 100 % of
+   * non-continuous load (210.20(A), 215.3), conductor sized for that load
+   * (210.19(A), 215.2(A)) and protected by the chosen OCPD.
+   * @param {object} o
+   * @param {number} o.continuous      amps running 3 h or more
+   * @param {number} [o.nonContinuous=0]
+   * @param {'cu'|'al'} o.material
+   * @param {60|75} o.terminalTemp     lowest termination rating
+   */
+  function branchCircuit({ continuous, nonContinuous = 0, material, terminalTemp }) {
+    if (!isNum(continuous) || continuous < 0) throw new Error('Continuous load must be zero or more.');
+    if (!isNum(nonContinuous) || nonContinuous < 0) throw new Error('Non-continuous load must be zero or more.');
+    if (continuous + nonContinuous <= 0) throw new Error('Enter a load greater than zero.');
+    const load = continuous + nonContinuous;
+    const required = continuous * 1.25 + nonContinuous;
+    const breaker = nextStandardOCPD(required);
+    if (breaker === null) throw new Error('Load is beyond standard breaker ratings.');
+
+    let conductor = null;
+    for (const size of SIZE_ORDER) {
+      const a = ampacity(size, material, terminalTemp);
+      if (a === null || a < required) continue;
+      if (maxOCPDForConductor(size, material, terminalTemp) >= breaker) { conductor = size; break; }
+    }
+    return {
+      load,
+      required,
+      breaker,
+      conductor,
+      conductorAmpacity: conductor ? ampacity(conductor, material, terminalTemp) : null,
+    };
+  }
+
+  // ----------------------------------------------------------- Motor circuits
+
+  // Full-load current, induction motors (NEC Table 430.250, three-phase;
+  // Table 430.248, single-phase). Columns are keyed by voltage.
+  const MOTOR_FLA = {
+    three: {
+      voltages: [200, 208, 230, 460, 575],
+      rows: [
+        ['1/2', 0.5, [2.5, 2.4, 2.2, 1.1, 0.9]],
+        ['3/4', 0.75, [3.7, 3.5, 3.2, 1.6, 1.3]],
+        ['1', 1, [4.8, 4.6, 4.2, 2.1, 1.7]],
+        ['1-1/2', 1.5, [6.9, 6.6, 6.0, 3.0, 2.4]],
+        ['2', 2, [7.8, 7.5, 6.8, 3.4, 2.7]],
+        ['3', 3, [11.0, 10.6, 9.6, 4.8, 3.9]],
+        ['5', 5, [17.5, 16.7, 15.2, 7.6, 6.1]],
+        ['7-1/2', 7.5, [25.3, 24.2, 22, 11, 9]],
+        ['10', 10, [32.2, 30.8, 28, 14, 11]],
+        ['15', 15, [48.3, 46.2, 42, 21, 17]],
+        ['20', 20, [62.1, 59.4, 54, 27, 22]],
+        ['25', 25, [78.2, 74.8, 68, 34, 27]],
+        ['30', 30, [92, 88, 80, 40, 32]],
+        ['40', 40, [120, 114, 104, 52, 41]],
+        ['50', 50, [150, 143, 130, 65, 52]],
+        ['60', 60, [177, 169, 154, 77, 62]],
+        ['75', 75, [221, 211, 192, 96, 77]],
+        ['100', 100, [285, 273, 248, 124, 99]],
+        ['125', 125, [359, 343, 312, 156, 125]],
+        ['150', 150, [414, 396, 360, 180, 144]],
+        ['200', 200, [552, 528, 480, 240, 192]],
+      ],
+    },
+    single: {
+      voltages: [115, 200, 208, 230],
+      rows: [
+        ['1/6', 1 / 6, [4.4, 2.5, 2.4, 2.2]],
+        ['1/4', 0.25, [5.8, 3.3, 3.2, 2.9]],
+        ['1/3', 1 / 3, [7.2, 4.1, 4.0, 3.6]],
+        ['1/2', 0.5, [9.8, 5.6, 5.4, 4.9]],
+        ['3/4', 0.75, [13.8, 7.9, 7.6, 6.9]],
+        ['1', 1, [16, 9.2, 8.8, 8]],
+        ['1-1/2', 1.5, [20, 11.5, 11, 10]],
+        ['2', 2, [24, 13.8, 13.2, 12]],
+        ['3', 3, [34, 19.6, 18.7, 17]],
+        ['5', 5, [56, 32.2, 30.8, 28]],
+        ['7-1/2', 7.5, [80, 46, 44, 40]],
+        ['10', 10, [100, 57.5, 55, 50]],
+      ],
+    },
+  };
+
+  function motorFLA({ phase, voltage, hp }) {
+    const t = MOTOR_FLA[phase];
+    if (!t) throw new Error('Motor phase must be single or three.');
+    const col = t.voltages.indexOf(voltage);
+    if (col < 0) throw new Error(`No table column for ${voltage} V.`);
+    const row = t.rows.find((r) => r[0] === hp);
+    if (!row) throw new Error(`No table row for ${hp} hp.`);
+    return row[2][col];
+  }
+
+  /**
+   * Motor branch circuit per NEC Article 430 using table FLC.
+   * Conductors at 125 % FLC (430.22). Maximum short-circuit/ground-fault
+   * protection per Table 430.52, rounded up to the next standard size as
+   * permitted by 430.52(C)(1) Exception 1.
+   */
+  function motorCircuit({ phase, voltage, hp, material, terminalTemp }) {
+    const fla = motorFLA({ phase, voltage, hp });
+    const minAmpacity = fla * 1.25;
+    const conductor = conductorForAmpacity(minAmpacity, material, terminalTemp);
+    const ocpd = (pct) => nextStandardOCPD((fla * pct) / 100);
+    return {
+      fla,
+      minAmpacity,
+      conductor,
+      conductorAmpacity: conductor ? ampacity(conductor, material, terminalTemp) : null,
+      breaker: ocpd(250),
+      dualElementFuse: ocpd(175),
+      nonTimeDelayFuse: ocpd(300),
+      // Overload sizing (430.32) uses nameplate current; FLC shown as a guide.
+      overload115: fla * 1.15,
+      overload125: fla * 1.25,
+    };
+  }
+
+  // ------------------------------------------------------------ Conduit fill
+
+  // Approximate area of THHN / THWN-2 conductors, in² (NEC Chapter 9 Table 5).
+  const THHN_AREA = {
+    '14': 0.0097, '12': 0.0133, '10': 0.0211, '8': 0.0366, '6': 0.0507,
+    '4': 0.0824, '3': 0.0973, '2': 0.1158, '1': 0.1562, '1/0': 0.1855,
+    '2/0': 0.2223, '3/0': 0.2679, '4/0': 0.3237, '250': 0.397, '300': 0.4608,
+    '350': 0.5242, '400': 0.5863, '500': 0.7073,
+  };
+
+  const TRADE_SIZES = ['1/2', '3/4', '1', '1-1/4', '1-1/2', '2', '2-1/2', '3', '3-1/2', '4'];
+
+  // Total internal area of conduit, in² (NEC Chapter 9 Table 4).
+  const CONDUIT_AREA = {
+    emt: {
+      label: 'EMT',
+      sizes: { '1/2': 0.304, '3/4': 0.533, '1': 0.864, '1-1/4': 1.496, '1-1/2': 2.036, '2': 3.356, '2-1/2': 5.858, '3': 8.846, '3-1/2': 11.545, '4': 14.753 },
+    },
+    pvc40: {
+      label: 'PVC Schedule 40',
+      sizes: { '1/2': 0.285, '3/4': 0.508, '1': 0.832, '1-1/4': 1.453, '1-1/2': 1.986, '2': 3.291, '2-1/2': 4.695, '3': 7.268, '3-1/2': 9.737, '4': 12.554 },
+    },
+    rmc: {
+      label: 'Rigid metal (RMC)',
+      sizes: { '1/2': 0.314, '3/4': 0.549, '1': 0.887, '1-1/4': 1.526, '1-1/2': 2.071, '2': 3.408, '2-1/2': 4.866, '3': 7.499, '3-1/2': 10.01, '4': 12.882 },
+    },
+  };
+
+  /** Maximum fill percentage by number of conductors (Chapter 9 Table 1). */
+  function maxFillPercent(count) {
+    if (count <= 0) return 0;
+    if (count === 1) return 53;
+    if (count === 2) return 31;
+    return 40;
+  }
+
+  /**
+   * @param {object} o
+   * @param {string} o.type   key of CONDUIT_AREA
+   * @param {string} o.size   trade size
+   * @param {{size:string, qty:number}[]} o.wires
+   */
+  function conduitFill({ type, size, wires }) {
+    const conduit = CONDUIT_AREA[type];
+    if (!conduit) throw new Error(`Unknown conduit type: ${type}`);
+    const area = conduit.sizes[size];
+    if (!isNum(area)) throw new Error(`Unknown trade size: ${size}`);
+    let count = 0;
+    let wireArea = 0;
+    for (const w of wires) {
+      const a = THHN_AREA[w.size];
+      if (!isNum(a)) throw new Error(`Unknown conductor size: ${w.size}`);
+      if (!Number.isInteger(w.qty) || w.qty < 0) throw new Error('Quantities must be whole numbers.');
+      count += w.qty;
+      wireArea += a * w.qty;
+    }
+    if (count === 0) throw new Error('Add at least one conductor.');
+    const allowedPercent = maxFillPercent(count);
+    const fillPercent = (wireArea / area) * 100;
+    return { count, wireArea, conduitArea: area, fillPercent, allowedPercent, ok: fillPercent <= allowedPercent };
+  }
+
+  /** Smallest trade size of `type` that holds `wires` within the fill limit, or null. */
+  function smallestConduit(type, wires) {
+    for (const size of TRADE_SIZES) {
+      if (conduitFill({ type, size, wires }).ok) return size;
+    }
+    return null;
+  }
+
   // ------------------------------------------------------ Resistor networks
 
   function seriesResistance(values) {
@@ -293,6 +567,23 @@
     wireLabel,
     voltageDrop,
     minWireForDrop,
+    AMPACITY,
+    STANDARD_OCPD,
+    nextStandardOCPD,
+    ampacity,
+    conductorForAmpacity,
+    maxOCPDForConductor,
+    branchCircuit,
+    MOTOR_FLA,
+    motorFLA,
+    motorCircuit,
+    SIZE_ORDER,
+    THHN_AREA,
+    TRADE_SIZES,
+    CONDUIT_AREA,
+    maxFillPercent,
+    conduitFill,
+    smallestConduit,
     seriesResistance,
     parallelResistance,
     COLORS,
