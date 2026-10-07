@@ -8,7 +8,7 @@ Field calculator for electricians, built for an electrical contracting business 
 - `www/index.html` — the whole app: markup, CSS and JS in one file (~200 KB). No build step, no framework.
 - `www/fonts/` — bundled woff2 fonts (Barlow, Barlow Condensed, JetBrains Mono, from @fontsource; OFL). No network fonts: the app must work fully offline.
 - `www/manifest.webmanifest` — PWA name ("Elec Calc"), colors, icons, shortcuts.
-- `www/sw.js` — PWA offline cache. **Bump `VERSION` (currently `elec-calc-v15`) every time anything in `www/` changes**, and add any new asset to its `SHELL` list.
+- `www/sw.js` — PWA offline cache. **Bump `VERSION` (currently `elec-calc-v16`) every time anything in `www/` changes**, and add any new asset to its `SHELL` list.
 - `www/icons/` — PWA icons (192/512, maskable, apple-touch, favicon).
 - `ios/` — Capacitor-generated Xcode project (Swift Package Manager, no CocoaPods). App icon: `ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png` (1024×1024, opaque). Home-screen name `CFBundleDisplayName` = "Elec Calc" in `ios/App/App/Info.plist`.
 - `capacitor.config.ts` — appId `com.levine.electricalcalculator`, appName "Electrical Calculator", webDir `www`.
@@ -51,7 +51,7 @@ Field calculator for electricians, built for an electrical contracting business 
 - Upsizing for derating does not upsize the EGC (250.122(B) exempts 310.15 adjustments). PV always applies 690.8(B) correction itself.
 
 ## Construction calculator parser
-- `ccParse(expr, bare)` returns `{v, d}`: v in inches^d (d=1 length, 2 area, 3 volume, 0 plain number). `7-3/8` with no spaces is a mixed number; `10 - 3/8` with spaces is subtraction. Plain numbers stay unitless in × and ÷ and become inches/feet/mm (per the "Plain numbers mean" setting) only when added to a length or when the whole result is unitless.
+- `ccParse(expr, bare)` returns `{v, d}`: v in inches^d (d=1 length, 2 area, 3 volume, 0 plain number). Unit words `mm`, `cm`, `m`, `yd`, `ft`, `in` work after any number (`1200mm`, `3.5 m + 2' 1/4"`); metric and yards are converted to inches in the parser. `7-3/8` with no spaces is a mixed number; `10 - 3/8` with spaces is subtraction. Plain numbers stay unitless in × and ÷ and become inches/feet/mm (per the "Plain numbers mean" setting) only when added to a length or when the whole result is unitless.
 
 ## Gotcha: trade-size keys
 - Raceway tables (`RW`) use string keys like "1/2", "3/4", "1", "1-1/4". JavaScript lists integer-like keys ("1", "2", "3") first, so always sort trade sizes with `tsz()` before searching for the smallest fit.
