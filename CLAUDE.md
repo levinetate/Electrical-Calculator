@@ -64,7 +64,7 @@ Field calculator for electricians, built for an electrical contracting business 
 - Test by loading `www/index.html` in a browser (`npm run serve`, or jsdom/Playwright) and reading the `.calc` blocks; there is no test suite yet.
 
 ## Status and next steps
-- Done: Capacitor iOS project, local fonts, iOS app icon and splash.
+- Done: Capacitor iOS project, local fonts, iOS app icon and splash. iPhone only (`TARGETED_DEVICE_FAMILY = 1`); `ITSAppUsesNonExemptEncryption = NO` in Info.plist. App Store screenshots in `appstore/screenshots/` (6.9″, 1320 × 2868); privacy policy `PRIVACY.md` says the app collects no data — keep it true (no network calls, storage or analytics) or update the policy and the App Store privacy label first.
 - Next (needs the owner's Mac): open with `npm run ios`, set the signing team in Xcode, run on a device, then TestFlight/App Store (Apple Developer Program, $99/yr). App Store listing needs screenshots, a privacy policy URL, and a description.
 - Later: Android via `@capacitor/android` (Google Play requires 12 testers × 14 days closed testing for new personal accounts).
 - In the native app the service worker doesn't run (Capacitor serves files locally); `sw.js` registration fails silently by design.
