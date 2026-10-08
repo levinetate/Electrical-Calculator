@@ -8,7 +8,7 @@ Field calculator for electricians, built for an electrical contracting business 
 - `www/index.html` — the whole app: markup, CSS and JS in one file (~200 KB). No build step, no framework.
 - `www/fonts/` — bundled woff2 fonts (Barlow, Barlow Condensed, JetBrains Mono, from @fontsource; OFL). No network fonts: the app must work fully offline.
 - `www/manifest.webmanifest` — PWA name ("Elec Calc"), colors, icons, shortcuts.
-- `www/sw.js` — PWA offline cache. **Bump `VERSION` (currently `elec-calc-v15`) every time anything in `www/` changes**, and add any new asset to its `SHELL` list.
+- `www/sw.js` — PWA offline cache. **Bump `VERSION` (currently `elec-calc-v17`) every time anything in `www/` changes**, and add any new asset to its `SHELL` list.
 - `www/icons/` — PWA icons (192/512, maskable, apple-touch, favicon).
 - `ios/` — Capacitor-generated Xcode project (Swift Package Manager, no CocoaPods). App icon: `ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png` (1024×1024, opaque). Home-screen name `CFBundleDisplayName` = "Elec Calc" in `ios/App/App/Info.plist`.
 - `capacitor.config.ts` — appId `com.levine.electricalcalculator`, appName "Electrical Calculator", webDir `www`.
@@ -38,6 +38,7 @@ Field calculator for electricians, built for an electrical contracting business 
 | p-pv | pvCalc | 690.7 cold Voc, 690.8/690.9 DC circuits, AC output, 705.11/705.12 (120% rule) |
 | p-cf | cfCalc | Chapter 9 conduit fill, optional derated ampacity |
 | p-bx | bxCalc, pbCalc | 314.16 box fill, 314.28 pull boxes |
+| p-bd | bdCalc | Conduit bending: offset/roll marks, 3-point saddle, 90° stub, diagonal (field multipliers) |
 | p-wc | wcCalc, panelCalc | Wire/phase colors, panel circuit numbers 1–100 by phase |
 | p-cc | ccCalc, spCalc, mcCalc | Construction calculator (ft-in to 1/16″, area/volume), equal spacing, metric↔SAE (length, area, volume, weight, temp, torque, pressure, mm²↔AWG, wrenches) |
 | p-pie, p-wa | pieCalc, waCalc, clCalc | Ohm's law PIE wheel (tappable), watts↔amps, circuit load builder |
@@ -69,3 +70,4 @@ Field calculator for electricians, built for an electrical contracting business 
 - Next (needs the owner's Mac): open with `npm run ios`, set the signing team in Xcode, run on a device, then TestFlight/App Store (Apple Developer Program, $99/yr). App Store listing needs screenshots, a privacy policy URL, and a description.
 - Later: Android via `@capacitor/android` (Google Play requires 12 testers × 14 days closed testing for new personal accounts).
 - In the native app the service worker doesn't run (Capacitor serves files locally); `sw.js` registration fails silently by design.
+- Every `section.panel` gets a "Copy job note" button (added by script just before `all`) that copies its title, `.result` plates and `pre.calc` text.
