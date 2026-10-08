@@ -175,6 +175,7 @@ footer{color:var(--muted);font-size:.82rem}
       <option value="p-vd">Voltage drop</option>
       <option value="p-cf">Conduit fill</option>
       <option value="p-bx">Box sizing</option>
+      <option value="p-bd">Conduit bending</option>
       <option value="p-wc">Wire &amp; phase colors</option>
     </optgroup>
   </select>
@@ -196,6 +197,7 @@ footer{color:var(--muted);font-size:.82rem}
   <button role="tab" id="t-pv" aria-selected="false" data-p="p-pv">PV</button>
   <button role="tab" id="t-cf" aria-selected="false" data-p="p-cf">Conduit Fill</button>
   <button role="tab" id="t-bx" aria-selected="false" data-p="p-bx">Boxes</button>
+  <button role="tab" id="t-bd" aria-selected="false" data-p="p-bd">Bending</button>
   <button role="tab" id="t-wc" aria-selected="false" data-p="p-wc">Colors</button>
   <button role="tab" id="t-cc" aria-selected="false" data-p="p-cc">Construction</button>
   <button role="tab" id="t-pie" aria-selected="false" data-p="p-pie">PIE</button>
@@ -957,6 +959,48 @@ footer{color:var(--muted);font-size:.82rem}
 </section>
 
 <!-- Wire colors -->
+<section class="panel" id="p-bd" role="tabpanel" hidden>
+  <div><h2>Conduit Bending</h2><div class="ref">Offsets · roll · 3-point saddle · 90° stub · diagonal · field multipliers (not a code table)</div></div>
+  <div class="block" style="border-top:0;padding-top:0">
+    <h3>Offset &amp; roll</h3>
+    <div class="fields">
+      <label>Bend angle<select id="bd-ang"><option value="0">10°</option><option value="1">22.5°</option><option value="2" selected>30°</option><option value="3">45°</option><option value="4">60°</option></select></label>
+      <label>Offset height (in)<input id="bd-off" type="text" value="6" inputmode="decimal"></label>
+      <label>Distance, end to first mark (in)<input id="bd-d" type="text" value="24" inputmode="decimal"></label>
+      <label>Roll: rise (in)<input id="bd-rise" type="text" value="6" inputmode="decimal"></label>
+      <label>Roll: sideways travel (in)<input id="bd-roll" type="text" value="4" inputmode="decimal"></label>
+    </div>
+    <div class="result" id="bd-out"></div>
+    <pre class="calc" id="bd-c"></pre>
+  </div>
+  <div class="block">
+    <h3>Three-point saddle &amp; 90° stub</h3>
+    <div class="fields">
+      <label>Obstruction height (in)<input id="bd-sh" type="text" value="2" inputmode="decimal"></label>
+      <label>End to center of obstruction (in)<input id="bd-sc" type="text" value="30" inputmode="decimal"></label>
+      <label>Conduit trade size<select id="bd-ts"><option>1/2</option><option selected>3/4</option><option>1</option><option>1-1/4</option><option>1-1/2</option><option>2</option></select></label>
+      <label>Take-up (in), blank = typical<input id="bd-take" type="text" value="" inputmode="decimal"></label>
+      <label>Finished stub height (in)<input id="bd-stub" type="text" value="12" inputmode="decimal"></label>
+    </div>
+    <div class="result" id="bd2-out"></div>
+    <pre class="calc" id="bd2-c"></pre>
+  </div>
+  <div class="block">
+    <h3>Diagonal</h3>
+    <div class="fields">
+      <label>Run (in)<input id="bd-ta" type="text" value="36" inputmode="decimal"></label>
+      <label>Rise or width (in)<input id="bd-tb" type="text" value="48" inputmode="decimal"></label>
+    </div>
+    <div class="result" id="bd3-out"></div>
+    <pre class="calc" id="bd3-c"></pre>
+    <ul class="notes">
+      <li>Offset spacing = height × multiplier (10° 6, 22.5° 2.6, 30° 2, 45° 1.4, 60° 1.2). Shrink per inch of height: 1/16, 3/16, 1/4, 3/8, 1/2 in.</li>
+      <li>Take-up values are typical bender figures; the number on your bender shoe overrides them.</li>
+      <li>These are trade rules of thumb, not NEC tables. Total bends between pull points may not exceed 360° (358.26, 342.26, 344.26).</li>
+    </ul>
+  </div>
+</section>
+
 <section class="panel" id="p-wc" role="tabpanel" hidden>
   <div><h2>Wire &amp; Phase Colors</h2><div class="ref">200.6 · 200.7 · 250.119 · 210.5(C) · 215.12(C) · 110.15 · 408.3(E)</div></div>
   <div class="fields">
@@ -2634,7 +2678,35 @@ document.querySelectorAll("[data-der]").forEach(el=>{el.outerHTML=derUI(el.datas
 const DERPRE={mo:["mo-c1","mo-c2","tp-c"],gen:["gn-c"],xf:["xf-c3"],sb:["mc-c1","mc-c2","sb-c"],ev:["ev-c1","ev-c2"],ld:["ld-c"]};
 function wrapDer(fn,k){return function(){DER=derOf(k);try{return fn.apply(this,arguments)}finally{const D=DER;DER=null;if(D&&D.on)(DERPRE[k]||[]).forEach(id=>{const e=$(id);if(e&&e.textContent)e.textContent+=`\n\nDerating applied to all conductor sizes above: ${D.txt}`})}}}
 motorCalc=wrapDer(motorCalc,"mo");genOut=wrapDer(genOut,"gen");xfCalc=wrapDer(xfCalc,"xf");sbCalc=wrapDer(sbCalc,"sb");evCalc=wrapDer(evCalc,"ev");loadCalc=wrapDer(loadCalc,"ld");
-const all=()=>{gec();bj();egc();rod();par2();genLoad();genOut();genGround();motorCalc();loadCalc();xfCalc();sbCalc();vdTab();evCalc();cfCalc();bxCalc();pbCalc();pvCalc();wcCalc();pieCalc();waCalc();clCalc();ccCalc(false);spCalc();mcCalc()};
+const BDA=[[10,6,1/16],[22.5,2.6,3/16],[30,2,1/4],[45,1.4,3/8],[60,1.2,1/2]],BDT={"1/2":5,"3/4":6,"1":8,"1-1/4":11,"1-1/2":15,"2":18};
+function bdNum(id){const t=$(id).value.trim();if(!t)return 0;const m=t.match(/^(\d+)[ -](\d+)\/(\d+)$/);if(m)return +m[1]+m[2]/m[3];const f=t.match(/^(\d+)\/(\d+)$/);if(f)return f[1]/f[2];return parseFloat(t)||0}
+function bdCalc(){
+  const a=BDA[+$("bd-ang").value],h=bdNum("bd-off"),D=bdNum("bd-d"),sp=h*a[1],sh=h*a[2],I=x=>inStr(x,16);
+  $("bd-out").innerHTML=plate("Mark 1",I(D),"from end",true)+plate("Mark 2",I(D+sp),"from end",true)+plate("Spacing",I(sp),`${a[0]}° bends`)+plate("Shrink",I(sh),"add if far end fixed");
+  const rs=bdNum("bd-rise"),rl=bdNum("bd-roll"),tr=Math.hypot(rs,rl),tilt=rs?Math.atan(rl/rs)*180/Math.PI:90;
+  $("bd-out").innerHTML+=plate("Roll true offset",I(tr),`marks ${I(tr*a[1])} apart`)+plate("Roll rotation",tilt.toFixed(1),"° from vertical");
+  $("bd-c").textContent=`Offset ${a[0]}° (field multiplier ${a[1]}, shrink ${I(a[2])} per in):
+  spacing = ${h} × ${a[1]} = ${I(sp)}
+  marks at ${I(D)} and ${I(D)} + ${I(sp)} = ${I(D+sp)}
+  shrink = ${h} × ${I(a[2])} = ${I(sh)}
+
+Roll offset:
+  true offset = √(${rs}² + ${rl}²) = ${tr.toFixed(2)}″
+  spacing = ${tr.toFixed(2)} × ${a[1]} = ${I(tr*a[1])}, shrink ${I(tr*a[2])}
+  rotate conduit atan(${rl} / ${rs}) = ${tilt.toFixed(1)}° between bends`;
+  const H=bdNum("bd-sh"),C=bdNum("bd-sc"),o=2.5*H,ts=$("bd-ts").value,tk=bdNum("bd-take")||BDT[ts],st=bdNum("bd-stub");
+  $("bd2-out").innerHTML=plate("Saddle center",I(C),"45° bend",true)+plate("Saddle outer",`${I(C-o)} & ${I(C+o)}`,"22.5° bends")+plate("Saddle shrink",I(H*3/16),"total")+plate("Stub mark",I(st-tk),"from end of conduit",true);
+  $("bd2-c").textContent=`Three-point saddle (45° center, 22.5° outer):
+  outer bends = 2.5 × ${H} = ${I(o)} each side of center ${I(C)}
+  shrink = ${H} × 3/16 = ${I(H*3/16)}
+
+90° stub (${ts} in, take-up ${tk}″${bdNum("bd-take")?"":" typical"}):
+  mark = ${I(st)} − ${I(tk)} = ${I(st-tk)} from the end`;
+  const A=bdNum("bd-ta"),B=bdNum("bd-tb"),d=Math.hypot(A,B);
+  $("bd3-out").innerHTML=plate("Diagonal",I(d),d.toFixed(2)+" in",true);
+  $("bd3-c").textContent=`√(${A}² + ${B}²) = ${d.toFixed(3)}″   (3-4-5 check: 36 × 48 gives 60)`;
+}
+const all=()=>{bdCalc();gec();bj();egc();rod();par2();genLoad();genOut();genGround();motorCalc();loadCalc();xfCalc();sbCalc();vdTab();evCalc();cfCalc();bxCalc();pbCalc();pvCalc();wcCalc();pieCalc();waCalc();clCalc();ccCalc(false);spCalc();mcCalc()};
 document.querySelectorAll("select,input").forEach(e=>e.addEventListener("input",all));
 $("tool").addEventListener("change",e=>{const b=document.querySelector(`nav button[data-p="${e.target.value}"]`);if(b){b.click();window.scrollTo(0,0)}});
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{
