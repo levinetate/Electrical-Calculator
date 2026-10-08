@@ -2706,6 +2706,25 @@ Roll offset:
   $("bd3-out").innerHTML=plate("Diagonal",I(d),d.toFixed(2)+" in",true);
   $("bd3-c").textContent=`√(${A}² + ${B}²) = ${d.toFixed(3)}″   (3-4-5 check: 36 × 48 gives 60)`;
 }
+// Copy job note: every panel gets a button that copies its title, result tiles and worked math
+document.querySelectorAll("section.panel").forEach(p=>{
+  const d=document.createElement("div");d.style.cssText="display:flex;gap:10px;align-items:center;margin-top:14px";
+  d.innerHTML='<button type="button" class="btn">Copy job note</button><span class="sub" role="status" style="margin:0"></span>';
+  p.appendChild(d);
+  const b=d.firstChild,t=d.lastChild;
+  b.addEventListener("click",()=>{
+    const h=p.querySelector("h2"),L=["ELECTRICAL CALCULATOR, NEC 2023",(h?h.textContent:"").trim()];
+    p.querySelectorAll(".result,pre.calc").forEach(e=>{
+      if(!e.textContent.trim())return;
+      if(e.classList.contains("result"))L.push([...e.querySelectorAll(".plate")].map(x=>[...x.children].map(c=>c.textContent.trim()).join(" ")).join("\n")||e.textContent.trim());
+      else L.push(e.textContent.trim());
+    });
+    L.push("Reference only. Verify with the adopted code and the AHJ.");
+    const txt=L.join("\n\n"),ok=()=>{t.textContent="Copied"};
+    const fb=()=>{const a=document.createElement("textarea");a.value=txt;document.body.appendChild(a);a.select();try{document.execCommand("copy");ok()}catch(_){t.textContent="Select and copy the results"}a.remove()};
+    try{navigator.clipboard.writeText(txt).then(ok,fb)}catch(_){fb()}
+  });
+});
 const all=()=>{bdCalc();gec();bj();egc();rod();par2();genLoad();genOut();genGround();motorCalc();loadCalc();xfCalc();sbCalc();vdTab();evCalc();cfCalc();bxCalc();pbCalc();pvCalc();wcCalc();pieCalc();waCalc();clCalc();ccCalc(false);spCalc();mcCalc()};
 document.querySelectorAll("select,input").forEach(e=>e.addEventListener("input",all));
 $("tool").addEventListener("change",e=>{const b=document.querySelector(`nav button[data-p="${e.target.value}"]`);if(b){b.click();window.scrollTo(0,0)}});
