@@ -1042,7 +1042,8 @@ footer{color:var(--muted);font-size:.82rem}
   <div class="fields">
     <label>Circuit<select id="lt-sel"></select></label>
   </div>
-  <p class="sub">Tap a switch to flip it. The glowing wire is the live path from the breaker; the lamp lights when the path is complete.</p>
+  <p class="sub">Tap a switch to flip it. The glowing wire is the live path from the breaker; the load powers up when the path is complete.</p>
+  <label id="lt-dl" hidden>Dimmer level (%)<input id="lt-dim" type="range" min="10" max="100" step="5" value="100"></label>
   <svg class="lt-svg" id="lt-svg" viewBox="0 0 440 215" role="group" aria-label="Interactive lighting wiring diagram"></svg>
   <div class="lt-leg" id="lt-leg"></div>
   <div class="result" id="lt-out" aria-live="polite"></div>
@@ -2686,7 +2687,7 @@ function wrapDer(fn,k){return function(){DER=derOf(k);try{return fn.apply(this,a
 motorCalc=wrapDer(motorCalc,"mo");genOut=wrapDer(genOut,"gen");xfCalc=wrapDer(xfCalc,"xf");sbCalc=wrapDer(sbCalc,"sb");evCalc=wrapDer(evCalc,"ev");loadCalc=wrapDer(loadCalc,"ld");
 /* ---- Lighting circuit diagrams: terminal graph, hot path found by breadth-first search from the panel hot ---- */
 const LT=(()=>{
-  const W=64,TY={sp:"single-pole",s3:"3-way",s4:"4-way"};
+  const W=64,TY={sp:"single-pole",s3:"3-way",s4:"4-way"},tn=s=>s.dim?"dimmer":TY[s.t];
   const TN={C:"common",T1:"traveler T1",T2:"traveler T2",A:"terminal A",B:"terminal B",I1:"in-1",I2:"in-2",O1:"out-1",O2:"out-2"};
   const SH=s=>s.t==="sp"?50:80;
   const terms=s=>{const w=s.w||W,L=s.x,R=s.x+w,f=s.flip,y=s.y,o={};
@@ -2714,11 +2715,23 @@ const LT=(()=>{
     s4:{name:"3-way + 4-way + 3-way (three locations)",ref:"404.2(A) · 300.3(B)",lamp:[400,110],J:{},
       sw:[{id:"SW1",t:"s3",x:85,y:70,w:52},{id:"SW2",t:"s4",x:185,y:70,w:52},{id:"SW3",t:"s3",x:285,y:70,w:52,flip:true}],
       wires:[{a:"H",b:"SW1.C",c:"blk",via:[[72,50],[72,110]]},{a:"SW1.T1",b:"SW2.I1",c:"red"},{a:"SW1.T2",b:"SW2.I2",c:"blu"},{a:"SW2.O1",b:"SW3.T1",c:"red"},{a:"SW2.O2",b:"SW3.T2",c:"blu"},{a:"SW3.C",b:"LH",c:"blk",via:[[365,110],[365,88]]},{a:"N",b:"LN",c:"wht",via:[[400,190]]}],
-      notes:["A 4-way switch always sits between two 3-way switches and either passes the travelers straight through or swaps them.","Add one more 4-way in the middle for each extra control location. The 3-way switches stay at the two ends.","Both end switches are 3-way; the 4-way has four terminals and no common."]}
+      notes:["A 4-way switch always sits between two 3-way switches and either passes the travelers straight through or swaps them.","Add one more 4-way in the middle for each extra control location. The 3-way switches stay at the two ends.","Both end switches are 3-way; the 4-way has four terminals and no common."]},
+    dm:{name:"Dimmer (single-pole)",ref:"404.2 · 404.14(E)",lamp:[390,110],J:{},dim:1,
+      sw:[{id:"SW1",t:"sp",x:170,y:95,dim:1}],
+      wires:[{a:"H",b:"SW1.A",c:"blk",via:[[120,50],[120,120]]},{a:"SW1.B",b:"LH",c:"blk",via:[[300,120],[300,88]]},{a:"N",b:"LN",c:"wht",via:[[390,190]]}],
+      notes:["A dimmer replaces the single-pole switch: line (hot) in, load out to the lamp. The on/off tap and the slider set how much of the power reaches the lamp.","Match the dimmer to the lamp type (incandescent, LED, magnetic or electronic low-voltage) and derate it when dimmers are ganged, since their heat sinks lose capacity. Check the dimmer's marked ratings (404.14(E)).","Most dimmers have a green EGC pigtail and no neutral; many smart and LED dimmers need the neutral at the box."]},
+    d3:{name:"3-way dimmer + 3-way switch",ref:"404.2(A) · 404.14(E)",lamp:[390,110],J:{},dim:1,
+      sw:[{id:"SW1",t:"s3",x:110,y:70,dim:1},{id:"SW2",t:"s3",x:250,y:70,flip:true}],
+      wires:[{a:"H",b:"SW1.C",c:"blk",via:[[90,50],[90,110]]},{a:"SW1.T1",b:"SW2.T1",c:"red"},{a:"SW1.T2",b:"SW2.T2",c:"blu"},{a:"SW2.C",b:"LH",c:"blk",via:[[350,110],[350,88]]},{a:"N",b:"LN",c:"wht",via:[[390,190]]}],
+      notes:["Only one 3-way dimmer is used; the other location is an ordinary 3-way switch. The dimmer sets brightness while the path through it is closed, and the standard switch can still turn the light off.","Use a 3-way-rated dimmer and follow its instructions for which screw is the common. Some must go on the line side, others on the load side.","Companion dimmers or smart add-on switches can control more locations without a second dimmer."]},
+    r3:{name:"3-way switched receptacle",ref:"404.2(A) · 406.4 · 250.146",lamp:[390,110],load:"rec",J:{},
+      sw:[{id:"SW1",t:"s3",x:110,y:70},{id:"SW2",t:"s3",x:250,y:70,flip:true}],
+      wires:[{a:"H",b:"SW1.C",c:"blk",via:[[90,50],[90,110]]},{a:"SW1.T1",b:"SW2.T1",c:"red"},{a:"SW1.T2",b:"SW2.T2",c:"blu"},{a:"SW2.C",b:"LH",c:"blk",via:[[350,110],[350,88]]},{a:"N",b:"LN",c:"wht",via:[[390,190]]}],
+      notes:["Two 3-way switches control the receptacle's hot (brass) terminal; the neutral (silver) goes straight through. Label it so no one mistakes it for an always-live outlet.","A switched receptacle can serve as the required wall-switch-controlled lighting outlet in habitable rooms only where 210.70(A)(1) Exception No. 1 allows it, and a switched receptacle does not count toward the 210.52 spacing. Check the adopted code and the AHJ.","The EGC lands on the receptacle's green screw and bonds the box (250.146, 406.4)."]}
   };
-  let cur="sp",st=[];
+  let cur="sp",st=[],lvl=100;
   const reset=()=>{st=CIR[cur].sw.map(()=>0)};
-  const nm=(c,n)=>{if(n==="H")return"panel hot (breaker)";if(n==="J")return"splice in light box";if(n==="LH")return"lamp";const[i,t]=n.split(".");return`${i} ${TN[t]}`};
+  const nm=(c,n)=>{if(n==="H")return"panel hot (breaker)";if(n==="J")return"splice in light box";if(n==="LH")return CIR[cur].load==="rec"?"receptacle":"lamp";const[i,t]=n.split(".");return`${i} ${TN[t]}`};
   function solve(c){
     const adj={},add=(a,b)=>{(adj[a]=adj[a]||[]).push(b);(adj[b]=adj[b]||[]).push(a)};
     c.wires.forEach(w=>add(w.a,w.b));
@@ -2738,31 +2751,35 @@ const LT=(()=>{
     for(const k in c.J){const[x,y]=c.J[k];o+=`<circle class="jn" cx="${x}" cy="${y}" r="5"/><text x="${x+8}" y="${y-7}">splice</text>`}
     c.sw.forEach((s,i)=>{
       const w=s.w||W,h=SH(s),t=terms(s),v=st[i],cx=s.x+w/2;
-      let g=`<g class="sw" data-i="${i}" tabindex="0" role="button" aria-label="${s.id} ${TY[s.t]} switch, ${stateTxt(s,v)}. Activate to flip.">`;
+      let g=`<g class="sw" data-i="${i}" tabindex="0" role="button" aria-label="${s.id} ${tn(s)} switch, ${stateTxt(s,v)}. Activate to flip.">`;
       g+=`<rect class="box" x="${s.x}" y="${s.y}" width="${w}" height="${h}" rx="6"/><rect class="hit" x="${s.x-8}" y="${s.y-26}" width="${w+16}" height="${h+34}"/>`;
       let seg=[];
       if(s.t==="sp"){const dir=s.flip?-1:1;seg=v?[[t.A,t.B,hot(s.id+".A")]]:[[t.A,[t.A[0]+dir*(w-16),t.A[1]-20],hot(s.id+".A")]]}
       else seg=edges(s,v).map(e=>[t[e[0]],t[e[1]],hot(s.id+"."+e[0])]);
       seg.forEach(q=>{const d=`M${q[0].join(" ")}L${q[1].join(" ")}`;g+=(q[2]?`<path class="glow" d="${d}"/>`:"")+`<path class="blade" d="${d}"/>`});
       for(const k in t){const[x,y]=t[k],left=x===s.x;g+=`<circle class="scr" cx="${x}" cy="${y}" r="4.5"/><text class="t8" x="${x+(left?8:-8)}" y="${y+3}" text-anchor="${left?"start":"end"}">${k}</text>`}
-      g+=`<text class="nm" x="${cx}" y="${s.y-14}" text-anchor="middle">${s.id} ${TY[s.t]}</text><text x="${cx}" y="${s.y-3}" text-anchor="middle">${stateTxt(s,v)}</text></g>`;
+      g+=`<text class="nm" x="${cx}" y="${s.y-14}" text-anchor="middle">${s.id} ${tn(s)}</text><text x="${cx}" y="${s.y-3}" text-anchor="middle">${stateTxt(s,v)}</text></g>`;
       o+=g});
-    let rays="";if(lit)for(let a=0;a<8;a++){const r=a*Math.PI/4,cs=Math.cos(r),sn=Math.sin(r);rays+=`<line class="ray" x1="${lx+cs*27}" y1="${ly+sn*27}" x2="${lx+cs*36}" y2="${ly+sn*36}"/>`}
-    o+=`${rays}<circle class="lamp${lit?" on":""}" cx="${lx}" cy="${ly}" r="22"/><path d="M${lx-11} ${ly-11}L${lx+11} ${ly+11}M${lx+11} ${ly-11}L${lx-11} ${ly+11}" stroke="var(--ink)" stroke-width="2" fill="none"/><text x="${lx}" y="${ly-42}" text-anchor="middle">LIGHT</text>`;
+    const rec=c.load==="rec",ld=rec?"receptacle":"lamp",op=lit&&c.dim?(.25+.75*lvl/100).toFixed(2):1;
+    if(rec)o+=`<rect class="lamp${lit?" on":""}" x="${lx-18}" y="${ly-22}" width="36" height="44" rx="7"/><path d="M${lx-6} ${ly-12}v9M${lx+6} ${ly-12}v9" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/><path d="M${lx-5} ${ly+14}a5 5 0 0 1 10 0z" fill="var(--ink)"/><text x="${lx}" y="${ly-30}" text-anchor="middle">RECEPTACLE</text>`;
+    else{let rays="";if(lit)for(let a=0;a<8;a++){const r=a*Math.PI/4,cs=Math.cos(r),sn=Math.sin(r);rays+=`<line class="ray" style="opacity:${op}" x1="${lx+cs*27}" y1="${ly+sn*27}" x2="${lx+cs*36}" y2="${ly+sn*36}"/>`}
+    o+=`${rays}<circle class="lamp" cx="${lx}" cy="${ly}" r="22"/>${lit?`<circle class="lamp on" style="opacity:${op}" cx="${lx}" cy="${ly}" r="22"/>`:""}<path d="M${lx-11} ${ly-11}L${lx+11} ${ly+11}M${lx+11} ${ly-11}L${lx-11} ${ly+11}" stroke="var(--ink)" stroke-width="2" fill="none"/><text x="${lx}" y="${ly-42}" text-anchor="middle">LIGHT</text>`}
+    $("lt-dl").hidden=!c.dim;
     $("lt-svg").innerHTML=o;
     $("lt-leg").innerHTML=[...new Set(c.wires.map(w=>w.tape?"tape":w.c))].map(k=>`<span><i class="${k}"></i>${LEG[k]}</span>`).join("");
-    $("lt-out").innerHTML=plate("Lamp",lit?"ON":"OFF","",true)+plate("Switches",c.sw.length,"in circuit")+plate("Live nodes",Object.keys(par).length,"of "+Object.keys(T).length);
-    let t=c.name+"\n\nSwitch positions\n"+c.sw.map((s,i)=>`  ${s.id} (${TY[s.t]}): ${stateTxt(s,st[i])}`).join("\n")+"\n\n";
-    if(lit){const path=[];for(let n="LH";n!==null;n=par[n])path.unshift(nm(c,n));t+="Hot path\n  "+path.join("\n  → ")+"\n\nLamp ON: the path from the breaker hot to the lamp is complete, and the neutral returns to the panel."}
+    $("lt-out").innerHTML=plate(rec?"Receptacle":"Lamp",lit?(rec?"LIVE":"ON"):(rec?"DEAD":"OFF"),"",true)+(c.dim?plate("Dimmer",lit?lvl:0,"% output"):"")+plate("Switches",c.sw.length,"in circuit")+plate("Live nodes",Object.keys(par).length,"of "+Object.keys(T).length);
+    let t=c.name+"\n\nSwitch positions\n"+c.sw.map((s,i)=>`  ${s.id} (${tn(s)}${s.dim&&s.t==="s3"?", 3-way":""}): ${stateTxt(s,st[i])}`).join("\n")+"\n\n";
+    if(lit){const path=[];for(let n="LH";n!==null;n=par[n])path.unshift(nm(c,n));t+="Hot path\n  "+path.join("\n  → ")+"\n\n"+(rec?"Receptacle live":"Lamp ON")+": the path from the breaker hot to the "+ld+" is complete, and the neutral returns to the panel."+(c.dim?`\nDimmer at ${lvl}%: reduces the power delivered to the lamp (output depends on the dimmer and lamp type).`:"")}
     else{
       const stops=c.sw.filter(s=>{const ks=Object.keys(terms(s)).map(k=>s.id+"."+k);return ks.some(hot)&&ks.some(k=>!hot(k))}).map(s=>{const ks=Object.keys(terms(s));return`  ${s.id}: hot reaches ${ks.filter(k=>hot(s.id+"."+k)).map(k=>TN[k]).join(", ")}; no closed contact to ${ks.filter(k=>!hot(s.id+"."+k)).map(k=>TN[k]).join(", ")}`});
-      t+="Lamp OFF: open circuit.\n"+(stops.length?stops.join("\n"):"  Hot does not pass the first switch.")+"\n\nFlip a switch to complete the path."}
+      t+=(rec?"Receptacle dead":"Lamp OFF")+": open circuit.\n"+(stops.length?stops.join("\n"):"  Hot does not pass the first switch.")+"\n\nFlip a switch to complete the path."}
     $("lt-c").textContent=t;
     $("lt-n").innerHTML=[...c.notes,NOTE_G].map(n=>`<li>${n}</li>`).join("");
   }
   function init(){
     $("lt-sel").innerHTML=Object.keys(CIR).map(k=>`<option value="${k}">${CIR[k].name}</option>`).join("");
     $("lt-sel").addEventListener("change",e=>{cur=e.target.value;reset();draw()});
+    $("lt-dim").addEventListener("input",e=>{lvl=+e.target.value;draw()});
     $("lt-rs").addEventListener("click",()=>{reset();draw()});
     const flip=(g,kb)=>{if(!g)return;const i=+g.dataset.i;st[i]^=1;draw();if(kb)$("lt-svg").querySelector(`.sw[data-i="${i}"]`).focus()};
     $("lt-svg").addEventListener("click",e=>flip(e.target.closest(".sw")));

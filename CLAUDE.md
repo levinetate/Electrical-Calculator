@@ -8,7 +8,7 @@ Field calculator for electricians, built for an electrical contracting business 
 - `www/index.html` — the whole app: markup, CSS and JS in one file (~200 KB). No build step, no framework.
 - `www/fonts/` — bundled woff2 fonts (Barlow, Barlow Condensed, JetBrains Mono, from @fontsource; OFL). No network fonts: the app must work fully offline.
 - `www/manifest.webmanifest` — PWA name ("Elec Calc"), colors, icons, shortcuts.
-- `www/sw.js` — PWA offline cache. **Bump `VERSION` (currently `elec-calc-v16`) every time anything in `www/` changes**, and add any new asset to its `SHELL` list.
+- `www/sw.js` — PWA offline cache. **Bump `VERSION` (currently `elec-calc-v17`) every time anything in `www/` changes**, and add any new asset to its `SHELL` list.
 - `www/icons/` — PWA icons (192/512, maskable, apple-touch, favicon).
 - `ios/` — Capacitor-generated Xcode project (Swift Package Manager, no CocoaPods). App icon: `ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png` (1024×1024, opaque). Home-screen name `CFBundleDisplayName` = "Elec Calc" in `ios/App/App/Info.plist`.
 - `capacitor.config.ts` — appId `com.levine.electricalcalculator`, appName "Electrical Calculator", webDir `www`.
@@ -39,7 +39,7 @@ Field calculator for electricians, built for an electrical contracting business 
 | p-cf | cfCalc | Chapter 9 conduit fill, optional derated ampacity |
 | p-bx | bxCalc, pbCalc | 314.16 box fill, 314.28 pull boxes |
 | p-wc | wcCalc, panelCalc | Wire/phase colors, panel circuit numbers 1–100 by phase |
-| p-lt | LT (init/draw) | Interactive lighting wiring diagrams: single-pole, switch loop, 3-way, 3-way+4-way. Tap switches; hot path found by BFS over a terminal graph; 404.2, 200.7(C)(1) |
+| p-lt | LT (init/draw) | Interactive lighting wiring diagrams: single-pole, switch loop, 3-way, 3-way+4-way, dimmer, 3-way dimmer, 3-way switched receptacle. Tap switches; hot path found by BFS over a terminal graph; 404.2, 200.7(C)(1) |
 | p-cc | ccCalc, spCalc, mcCalc | Construction calculator (ft-in to 1/16″, area/volume), equal spacing, metric↔SAE (length, area, volume, weight, temp, torque, pressure, mm²↔AWG, wrenches) |
 | p-pie, p-wa | pieCalc, waCalc, clCalc | Ohm's law PIE wheel (tappable), watts↔amps, circuit load builder |
 
