@@ -40,13 +40,46 @@ img{max-width:100%}
   --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
   --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --hot:#f0b400; --hot-core:#fff3b0; --w-blk:#1b211c; --w-wht:#ffffff; --w-red:#c0392b; --w-blu:#2563b8; --w-edge:#8d978f;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#121613; --surface:#1a201b; --ink:#e7ece6; --muted:#9aa69c; --line:#2f3830;
-  --ground:#46b46a; --ground-ink:#0d150f; --copper:#e0915a; --warn:#f2b84b; --warn-bg:#2b2412; color-scheme:dark}}
+  --ground:#46b46a; --ground-ink:#0d150f; --copper:#e0915a; --warn:#f2b84b; --warn-bg:#2b2412; color-scheme:dark;
+  --hot:#ffcf3f; --w-blk:#0a0c0b; --w-wht:#eef2ee; --w-red:#ef6a5a; --w-blu:#6aa2f0; --w-edge:#6c786e}}
 :root[data-theme="dark"]{
   --bg:#121613; --surface:#1a201b; --ink:#e7ece6; --muted:#9aa69c; --line:#2f3830;
-  --ground:#46b46a; --ground-ink:#0d150f; --copper:#e0915a; --warn:#f2b84b; --warn-bg:#2b2412; color-scheme:dark}
+  --ground:#46b46a; --ground-ink:#0d150f; --copper:#e0915a; --warn:#f2b84b; --warn-bg:#2b2412; color-scheme:dark;
+  --hot:#ffcf3f; --w-blk:#0a0c0b; --w-wht:#eef2ee; --w-red:#ef6a5a; --w-blu:#6aa2f0; --w-edge:#6c786e}
+/* Lighting circuit diagrams */
+.lt-svg{width:100%;height:auto;max-width:600px;margin-inline:auto;display:block;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.lt-svg text{font:600 10px var(--body);fill:var(--muted)}
+.lt-svg text.t8{font-size:8px;font-family:var(--mono);font-weight:500}
+.lt-svg text.nm{fill:var(--ink)}
+.lt-svg .sw{cursor:pointer;-webkit-tap-highlight-color:transparent}
+.lt-svg .sw:focus{outline:none}
+.lt-svg .sw:focus .box,.lt-svg .sw:hover .box{stroke:var(--ground);stroke-width:2.5}
+.lt-svg .box{fill:var(--surface);stroke:var(--line);stroke-width:1.5}
+.lt-svg .hit{fill:transparent}
+.lt-svg .scr{fill:var(--surface);stroke:var(--ink);stroke-width:1.5}
+.lt-svg .blade{fill:none;stroke:var(--ink);stroke-width:3.5;stroke-linecap:round}
+.lt-svg .glow{fill:none;stroke:var(--hot);stroke-width:10;stroke-linecap:round;stroke-linejoin:round;opacity:.55}
+.lt-svg .edge{fill:none;stroke:var(--w-edge);stroke-width:6.5;stroke-linecap:round;stroke-linejoin:round}
+.lt-svg .core{fill:none;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round}
+.lt-svg .core.blk{stroke:var(--w-blk)}.lt-svg .core.wht{stroke:var(--w-wht)}.lt-svg .core.red{stroke:var(--w-red)}.lt-svg .core.blu{stroke:var(--w-blu)}
+.lt-svg .tape{fill:none;stroke:var(--w-blk);stroke-width:3.5;stroke-dasharray:3 9;stroke-linejoin:round}
+.lt-svg .flow{fill:none;stroke:var(--hot-core);stroke-width:1.6;stroke-dasharray:3 9;stroke-linecap:round;stroke-linejoin:round}
+@media (prefers-reduced-motion:no-preference){.lt-svg .flow{animation:ltflow .9s linear infinite}}
+@keyframes ltflow{to{stroke-dashoffset:-12}}
+.lt-svg .lamp{fill:var(--surface);stroke:var(--ink);stroke-width:2}
+.lt-svg .lamp.on{fill:var(--hot)}
+.lt-svg .ray{stroke:var(--hot);stroke-width:3;stroke-linecap:round}
+.lt-svg .src{fill:var(--surface);stroke:var(--line);stroke-width:1.5}
+.lt-svg .jn{fill:var(--ink)}
+.lt-leg{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.85rem;color:var(--muted)}
+.lt-leg span{display:inline-flex;align-items:center;gap:6px}
+.lt-leg i{width:22px;height:6px;border-radius:3px;border:1px solid var(--w-edge);display:inline-block}
+.lt-leg i.blk{background:var(--w-blk)}.lt-leg i.wht{background:var(--w-wht)}.lt-leg i.red{background:var(--w-red)}.lt-leg i.blu{background:var(--w-blu)}
+.lt-leg i.tape{background:repeating-linear-gradient(90deg,var(--w-blk) 0 3px,var(--w-wht) 3px 7px)}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font:16px/1.5 var(--body);padding-inline:16px;padding-block:20px 40px}
 .wrap{max-width:720px;margin:0 auto;display:grid;gap:18px}
@@ -176,6 +209,7 @@ footer{color:var(--muted);font-size:.82rem}
       <option value="p-cf">Conduit fill</option>
       <option value="p-bx">Box sizing</option>
       <option value="p-wc">Wire &amp; phase colors</option>
+      <option value="p-lt">Lighting circuit diagrams</option>
     </optgroup>
   </select>
 </label>
@@ -197,6 +231,7 @@ footer{color:var(--muted);font-size:.82rem}
   <button role="tab" id="t-cf" aria-selected="false" data-p="p-cf">Conduit Fill</button>
   <button role="tab" id="t-bx" aria-selected="false" data-p="p-bx">Boxes</button>
   <button role="tab" id="t-wc" aria-selected="false" data-p="p-wc">Colors</button>
+  <button role="tab" id="t-lt" aria-selected="false" data-p="p-lt">Lighting</button>
   <button role="tab" id="t-cc" aria-selected="false" data-p="p-cc">Construction</button>
   <button role="tab" id="t-pie" aria-selected="false" data-p="p-pie">PIE</button>
   <button role="tab" id="t-wa" aria-selected="false" data-p="p-wa">Watts/Amps</button>
@@ -999,6 +1034,21 @@ footer{color:var(--muted);font-size:.82rem}
     <li>A white conductor in a cable may be re-marked as ungrounded, e.g. a switch loop, with tape or paint at every point it's visible (200.7(C)). Never re-mark a green conductor as anything else.</li>
     <li>Phase arrangement at panels and switchboards: A, B, C from front to back, top to bottom, or left to right (408.3(E)). High leg on B, except in meter sockets, where it goes on C.</li>
   </ul>
+</section>
+
+<!-- Lighting circuit diagrams -->
+<section class="panel" id="p-lt" role="tabpanel" hidden>
+  <div><h2>Lighting Circuit Diagrams</h2><div class="ref">404.2 · 200.7(C) · 300.3(B) · 250.148</div></div>
+  <div class="fields">
+    <label>Circuit<select id="lt-sel"></select></label>
+  </div>
+  <p class="sub">Tap a switch to flip it. The glowing wire is the live path from the breaker; the lamp lights when the path is complete.</p>
+  <svg class="lt-svg" id="lt-svg" viewBox="0 0 440 215" role="group" aria-label="Interactive lighting wiring diagram"></svg>
+  <div class="lt-leg" id="lt-leg"></div>
+  <div class="result" id="lt-out" aria-live="polite"></div>
+  <pre class="calc" id="lt-c"></pre>
+  <div><button type="button" class="x" id="lt-rs">Reset switches</button></div>
+  <ul class="notes" id="lt-n"></ul>
 </section>
 
 <!-- PIE / Ohm's law -->
@@ -2634,6 +2684,93 @@ document.querySelectorAll("[data-der]").forEach(el=>{el.outerHTML=derUI(el.datas
 const DERPRE={mo:["mo-c1","mo-c2","tp-c"],gen:["gn-c"],xf:["xf-c3"],sb:["mc-c1","mc-c2","sb-c"],ev:["ev-c1","ev-c2"],ld:["ld-c"]};
 function wrapDer(fn,k){return function(){DER=derOf(k);try{return fn.apply(this,arguments)}finally{const D=DER;DER=null;if(D&&D.on)(DERPRE[k]||[]).forEach(id=>{const e=$(id);if(e&&e.textContent)e.textContent+=`\n\nDerating applied to all conductor sizes above: ${D.txt}`})}}}
 motorCalc=wrapDer(motorCalc,"mo");genOut=wrapDer(genOut,"gen");xfCalc=wrapDer(xfCalc,"xf");sbCalc=wrapDer(sbCalc,"sb");evCalc=wrapDer(evCalc,"ev");loadCalc=wrapDer(loadCalc,"ld");
+/* ---- Lighting circuit diagrams: terminal graph, hot path found by breadth-first search from the panel hot ---- */
+const LT=(()=>{
+  const W=64,TY={sp:"single-pole",s3:"3-way",s4:"4-way"};
+  const TN={C:"common",T1:"traveler T1",T2:"traveler T2",A:"terminal A",B:"terminal B",I1:"in-1",I2:"in-2",O1:"out-1",O2:"out-2"};
+  const SH=s=>s.t==="sp"?50:80;
+  const terms=s=>{const w=s.w||W,L=s.x,R=s.x+w,f=s.flip,y=s.y,o={};
+    if(s.t==="sp"){o.A=[f?R:L,y+25];o.B=[f?L:R,y+25]}
+    else if(s.t==="s3"){o.C=[f?R:L,y+40];o.T1=[f?L:R,y+20];o.T2=[f?L:R,y+60]}
+    else{o.I1=[L,y+20];o.I2=[L,y+60];o.O1=[R,y+20];o.O2=[R,y+60]}
+    return o};
+  const edges=(s,v)=>s.t==="sp"?(v?[["A","B"]]:[]):s.t==="s3"?[["C",v?"T2":"T1"]]:(v?[["I1","O2"],["I2","O1"]]:[["I1","O1"],["I2","O2"]]);
+  const stateTxt=(s,v)=>s.t==="sp"?(v?"ON":"OFF"):s.t==="s3"?(v?"C → T2":"C → T1"):(v?"crossed":"straight");
+  const LEG={blk:"Hot (black)",wht:"Neutral (white)",red:"Traveler (red)",blu:"Traveler (blue)",tape:"White re-identified as hot"};
+  const NOTE_G="The equipment grounding conductor is not drawn: bond every box and device yoke (250.148, 404.9(B)).";
+  const CIR={
+    sp:{name:"Single-pole switch, power at the switch",ref:"404.2(A) · 404.2(C)",lamp:[390,110],J:{},
+      sw:[{id:"SW1",t:"sp",x:170,y:95}],
+      wires:[{a:"H",b:"SW1.A",c:"blk",via:[[120,50],[120,120]]},{a:"SW1.B",b:"LH",c:"blk",via:[[300,120],[300,88]]},{a:"N",b:"LN",c:"wht",via:[[390,190]]}],
+      notes:["Switching is done only in the ungrounded (hot) conductor (404.2(A)). The neutral never goes through the switch; it runs on to the lamp.","Power enters the switch box, so a neutral is available there. Lighting-load switch locations need a grounded conductor in the box (404.2(C)), which also lets you land a smart switch later."]},
+    loop:{name:"Single-pole switch loop, power at the light",ref:"200.7(C)(1) · 404.2(C)",lamp:[390,110],J:{J:[300,50]},
+      sw:[{id:"SW1",t:"sp",x:150,y:95,flip:true}],
+      wires:[{a:"H",b:"J",c:"blk"},{a:"J",b:"SW1.A",c:"wht",tape:true,via:[[300,120]]},{a:"SW1.B",b:"LH",c:"blk",via:[[130,120],[130,165],[340,165],[340,88]]},{a:"N",b:"LN",c:"wht",via:[[390,190]]}],
+      notes:["Power goes to the light box first. A 2-wire cable runs down to the switch: the white conductor carries hot to the switch and the black brings switched hot back to the lamp.","A white conductor used as an ungrounded supply to a switch must be permanently re-identified (tape or paint) wherever it is visible (200.7(C)(1)). It may not be used as the return from the switch.","A loop has no neutral at the switch. 404.2(C) generally requires one for lighting-load switches and has limited exceptions; pull 3-wire cable to the switch where you can."]},
+    s3:{name:"3-way switches, power at the first switch",ref:"404.2(A) · 300.3(B)",lamp:[390,110],J:{},
+      sw:[{id:"SW1",t:"s3",x:110,y:70},{id:"SW2",t:"s3",x:250,y:70,flip:true}],
+      wires:[{a:"H",b:"SW1.C",c:"blk",via:[[90,50],[90,110]]},{a:"SW1.T1",b:"SW2.T1",c:"red"},{a:"SW1.T2",b:"SW2.T2",c:"blu"},{a:"SW2.C",b:"LH",c:"blk",via:[[350,110],[350,88]]},{a:"N",b:"LN",c:"wht",via:[[390,190]]}],
+      notes:["The common (dark screw) of one switch takes the hot; the common of the other goes to the lamp. The two travelers run between the switches.","Flipping either switch changes the path, so the lamp toggles from either location. Each switch connects its common to exactly one traveler.","All conductors of the circuit, including the travelers, run together in the same cable or raceway (300.3(B)); 14/3 or 12/3 gives black, red, white plus ground."]},
+    s4:{name:"3-way + 4-way + 3-way (three locations)",ref:"404.2(A) · 300.3(B)",lamp:[400,110],J:{},
+      sw:[{id:"SW1",t:"s3",x:85,y:70,w:52},{id:"SW2",t:"s4",x:185,y:70,w:52},{id:"SW3",t:"s3",x:285,y:70,w:52,flip:true}],
+      wires:[{a:"H",b:"SW1.C",c:"blk",via:[[72,50],[72,110]]},{a:"SW1.T1",b:"SW2.I1",c:"red"},{a:"SW1.T2",b:"SW2.I2",c:"blu"},{a:"SW2.O1",b:"SW3.T1",c:"red"},{a:"SW2.O2",b:"SW3.T2",c:"blu"},{a:"SW3.C",b:"LH",c:"blk",via:[[365,110],[365,88]]},{a:"N",b:"LN",c:"wht",via:[[400,190]]}],
+      notes:["A 4-way switch always sits between two 3-way switches and either passes the travelers straight through or swaps them.","Add one more 4-way in the middle for each extra control location. The 3-way switches stay at the two ends.","Both end switches are 3-way; the 4-way has four terminals and no common."]}
+  };
+  let cur="sp",st=[];
+  const reset=()=>{st=CIR[cur].sw.map(()=>0)};
+  const nm=(c,n)=>{if(n==="H")return"panel hot (breaker)";if(n==="J")return"splice in light box";if(n==="LH")return"lamp";const[i,t]=n.split(".");return`${i} ${TN[t]}`};
+  function solve(c){
+    const adj={},add=(a,b)=>{(adj[a]=adj[a]||[]).push(b);(adj[b]=adj[b]||[]).push(a)};
+    c.wires.forEach(w=>add(w.a,w.b));
+    c.sw.forEach((s,i)=>edges(s,st[i]).forEach(e=>add(s.id+"."+e[0],s.id+"."+e[1])));
+    const par={H:null},q=["H"];
+    while(q.length){const n=q.shift();(adj[n]||[]).forEach(m=>{if(!(m in par)){par[m]=n;q.push(m)}})}
+    return par}
+  function draw(){
+    const c=CIR[cur],par=solve(c),hot=n=>n in par,lit=hot("LH"),T={H:[60,50],N:[60,190]};
+    const [lx,ly]=c.lamp;T.LH=[lx,ly-22];T.LN=[lx,ly+22];
+    Object.assign(T,c.J);
+    c.sw.forEach(s=>{const t=terms(s);for(const k in t)T[s.id+"."+k]=t[k]});
+    let o=`<rect class="src" x="8" y="28" width="52" height="180" rx="6"/><text x="34" y="46" text-anchor="middle" class="nm">HOT</text><text x="34" y="182" text-anchor="middle" class="nm">NEUT</text><text x="34" y="120" text-anchor="middle">120 V</text><text x="34" y="132" text-anchor="middle">panel</text>`;
+    c.wires.forEach(w=>{
+      const p=[T[w.a],...(w.via||[]),T[w.b]],d="M"+p.map(q=>q.join(" ")).join("L"),h=hot(w.a);
+      o+=(h?`<path class="glow" d="${d}"/>`:"")+`<path class="edge" d="${d}"/><path class="core ${w.c}" d="${d}"/>`+(w.tape?`<path class="tape" d="${d}"/>`:"")+(h?`<path class="flow" d="${d}"/>`:"")});
+    for(const k in c.J){const[x,y]=c.J[k];o+=`<circle class="jn" cx="${x}" cy="${y}" r="5"/><text x="${x+8}" y="${y-7}">splice</text>`}
+    c.sw.forEach((s,i)=>{
+      const w=s.w||W,h=SH(s),t=terms(s),v=st[i],cx=s.x+w/2;
+      let g=`<g class="sw" data-i="${i}" tabindex="0" role="button" aria-label="${s.id} ${TY[s.t]} switch, ${stateTxt(s,v)}. Activate to flip.">`;
+      g+=`<rect class="box" x="${s.x}" y="${s.y}" width="${w}" height="${h}" rx="6"/><rect class="hit" x="${s.x-8}" y="${s.y-26}" width="${w+16}" height="${h+34}"/>`;
+      let seg=[];
+      if(s.t==="sp"){const dir=s.flip?-1:1;seg=v?[[t.A,t.B,hot(s.id+".A")]]:[[t.A,[t.A[0]+dir*(w-16),t.A[1]-20],hot(s.id+".A")]]}
+      else seg=edges(s,v).map(e=>[t[e[0]],t[e[1]],hot(s.id+"."+e[0])]);
+      seg.forEach(q=>{const d=`M${q[0].join(" ")}L${q[1].join(" ")}`;g+=(q[2]?`<path class="glow" d="${d}"/>`:"")+`<path class="blade" d="${d}"/>`});
+      for(const k in t){const[x,y]=t[k],left=x===s.x;g+=`<circle class="scr" cx="${x}" cy="${y}" r="4.5"/><text class="t8" x="${x+(left?8:-8)}" y="${y+3}" text-anchor="${left?"start":"end"}">${k}</text>`}
+      g+=`<text class="nm" x="${cx}" y="${s.y-14}" text-anchor="middle">${s.id} ${TY[s.t]}</text><text x="${cx}" y="${s.y-3}" text-anchor="middle">${stateTxt(s,v)}</text></g>`;
+      o+=g});
+    let rays="";if(lit)for(let a=0;a<8;a++){const r=a*Math.PI/4,cs=Math.cos(r),sn=Math.sin(r);rays+=`<line class="ray" x1="${lx+cs*27}" y1="${ly+sn*27}" x2="${lx+cs*36}" y2="${ly+sn*36}"/>`}
+    o+=`${rays}<circle class="lamp${lit?" on":""}" cx="${lx}" cy="${ly}" r="22"/><path d="M${lx-11} ${ly-11}L${lx+11} ${ly+11}M${lx+11} ${ly-11}L${lx-11} ${ly+11}" stroke="var(--ink)" stroke-width="2" fill="none"/><text x="${lx}" y="${ly-42}" text-anchor="middle">LIGHT</text>`;
+    $("lt-svg").innerHTML=o;
+    $("lt-leg").innerHTML=[...new Set(c.wires.map(w=>w.tape?"tape":w.c))].map(k=>`<span><i class="${k}"></i>${LEG[k]}</span>`).join("");
+    $("lt-out").innerHTML=plate("Lamp",lit?"ON":"OFF","",true)+plate("Switches",c.sw.length,"in circuit")+plate("Live nodes",Object.keys(par).length,"of "+Object.keys(T).length);
+    let t=c.name+"\n\nSwitch positions\n"+c.sw.map((s,i)=>`  ${s.id} (${TY[s.t]}): ${stateTxt(s,st[i])}`).join("\n")+"\n\n";
+    if(lit){const path=[];for(let n="LH";n!==null;n=par[n])path.unshift(nm(c,n));t+="Hot path\n  "+path.join("\n  → ")+"\n\nLamp ON: the path from the breaker hot to the lamp is complete, and the neutral returns to the panel."}
+    else{
+      const stops=c.sw.filter(s=>{const ks=Object.keys(terms(s)).map(k=>s.id+"."+k);return ks.some(hot)&&ks.some(k=>!hot(k))}).map(s=>{const ks=Object.keys(terms(s));return`  ${s.id}: hot reaches ${ks.filter(k=>hot(s.id+"."+k)).map(k=>TN[k]).join(", ")}; no closed contact to ${ks.filter(k=>!hot(s.id+"."+k)).map(k=>TN[k]).join(", ")}`});
+      t+="Lamp OFF: open circuit.\n"+(stops.length?stops.join("\n"):"  Hot does not pass the first switch.")+"\n\nFlip a switch to complete the path."}
+    $("lt-c").textContent=t;
+    $("lt-n").innerHTML=[...c.notes,NOTE_G].map(n=>`<li>${n}</li>`).join("");
+  }
+  function init(){
+    $("lt-sel").innerHTML=Object.keys(CIR).map(k=>`<option value="${k}">${CIR[k].name}</option>`).join("");
+    $("lt-sel").addEventListener("change",e=>{cur=e.target.value;reset();draw()});
+    $("lt-rs").addEventListener("click",()=>{reset();draw()});
+    const flip=(g,kb)=>{if(!g)return;const i=+g.dataset.i;st[i]^=1;draw();if(kb)$("lt-svg").querySelector(`.sw[data-i="${i}"]`).focus()};
+    $("lt-svg").addEventListener("click",e=>flip(e.target.closest(".sw")));
+    $("lt-svg").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();flip(e.target.closest(".sw"),true)}});
+    reset();draw()}
+  return{init,draw,select:k=>{cur=k;$("lt-sel").value=k;reset();draw()},flip:i=>{st[i]^=1;draw()}};
+})();
+LT.init();
 const all=()=>{gec();bj();egc();rod();par2();genLoad();genOut();genGround();motorCalc();loadCalc();xfCalc();sbCalc();vdTab();evCalc();cfCalc();bxCalc();pbCalc();pvCalc();wcCalc();pieCalc();waCalc();clCalc();ccCalc(false);spCalc();mcCalc()};
 document.querySelectorAll("select,input").forEach(e=>e.addEventListener("input",all));
 $("tool").addEventListener("change",e=>{const b=document.querySelector(`nav button[data-p="${e.target.value}"]`);if(b){b.click();window.scrollTo(0,0)}});
