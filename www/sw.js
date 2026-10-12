@@ -1,6 +1,6 @@
 // Offline support: cache the app shell on install, serve cache-first,
 // and keep a runtime copy of the Google Fonts files once they've loaded.
-const VERSION = "elec-calc-v21";
+const VERSION = "elec-calc-v22";
 const SHELL = [
   "./",
   "./index.html",

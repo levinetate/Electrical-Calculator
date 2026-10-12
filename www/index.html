@@ -135,6 +135,12 @@ select,input{font:500 1.05rem var(--body);padding:10px;border:1px solid var(--li
 .notes{margin:0;padding-left:18px;color:var(--muted);font-size:.9rem;display:grid;gap:4px}
 .flag{background:var(--warn-bg);color:var(--ink);border-left:4px solid var(--warn);padding:10px 12px;border-radius:6px;font-size:.92rem}
 .flag[hidden]{display:none}
+.ck{display:flex;align-items:center;gap:8px;font-size:.92rem;font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink)}
+.ck input[type=checkbox]{width:auto;flex:none}
+textarea{font:500 1rem var(--body);padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);width:100%;min-height:64px;resize:vertical}
+.ckt td input,.ckt td select{min-width:68px}.ckt td input[type=text]{min-width:120px}
+.ckg,.ckg>div{display:grid;gap:6px;min-width:0}.ckg>*{min-width:0}
+
 footer{color:var(--muted);font-size:.82rem}
 @media (max-width:480px){nav button{font-size:.8rem;letter-spacing:.02em;padding:9px 2px}h1{font-size:1.8rem}}
 </style>
@@ -1291,7 +1297,20 @@ footer{color:var(--muted);font-size:.82rem}
   </div>
 
   <div class="block">
-    <h3>K · Symptom checklist</h3>
+    <h3>K · Field diagnostic checklist &amp; voltage log</h3>
+    <div class="ref">NFPA 70E safety · NFPA 70B maintenance · NEC · ANSI C84.1. Entries save on this device as you type.</div>
+    <div id="ck-root" class="ckg"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" id="ck-copy" type="button">Copy report as text</button>
+      <button class="btn" id="ck-new" type="button">New checklist</button>
+    </div>
+    <ul class="notes">
+      <li>A field aid only. Follow site-specific procedures, manufacturer instructions and the applicable codes, and work only within your qualifications. Keep records over time for trending (NFPA 70B).</li>
+    </ul>
+  </div>
+
+  <div class="block">
+    <h3>L · Symptom checklist</h3>
     <div class="fields"><label>Symptom<select id="dx-sym"></select></label></div>
     <ol class="notes" id="dx-sym-out"></ol>
   </div>
@@ -3059,7 +3078,78 @@ $("mt-copy").addEventListener("click",()=>{const q=t=>'"'+String(t).replace(/"/g
   const done=()=>{$("mt-copy").textContent="Copied";setTimeout(()=>$("mt-copy").textContent="Copy as CSV",1500)};
   if(navigator.clipboard)navigator.clipboard.writeText(csv).then(done,()=>prompt("Copy this CSV:",csv));else prompt("Copy this CSV:",csv)});
 renderMt();
-const all=()=>{dxCalc();gec();bj();egc();rod();par2();genLoad();genOut();genGround();motorCalc();loadCalc();xfCalc();sbCalc();vdTab();evCalc();cfCalc();bxCalc();pbCalc();pvCalc();wcCalc();pieCalc();waCalc();clCalc();ccCalc(false);spCalc();mcCalc()};
+// ----- field diagnostic checklist -----
+const CK_SAFE=["Job briefing completed / hazards identified","Arc flash label reviewed: incident energy & PPE category noted","Proper PPE: arc-rated clothing, gloves, face shield/hood as required","Lockout/Tagout (LOTO) applied and verified (if de-energized work)","Absence of voltage verified with rated meter (live-dead-live test)","Approach boundaries established; unqualified persons excluded","Energized work permit issued if required (diagnostic exceptions documented)"];
+const CK_VIS=["No signs of overheating, discoloration, or burn marks","No corrosion, moisture, or contamination","Connections appear tight; no loose lugs or damaged insulation","Proper labeling on panel, breakers, and conductors","Clear working space (NEC 110.26)","Grounding electrode conductor and bonding jumper intact","No open knockouts or missing covers"];
+const CK_P1=["Service entrance","Main panel","Subpanel / load"], CK_P3=["Service / meter","Main switchgear","Distribution panel","Motor / load"];
+const CK_FAULT=[["Low L-N, normal L-G","Open / high-resistance neutral","Check neutral connections, voltage under load"],["One phase low or missing","Open conductor, blown fuse, utility issue","Verify upstream, phase sequence, utility report"],["Voltage unbalance > 2%","Uneven loads, poor connections, utility","Rebalance loads, torque check, utility call"],["High N-G voltage","Neutral issues or shared neutrals","Isolate and test neutrals"],["Breaker trips under load","Overload, short, ground fault, weak connection","Current measurement, IR scan, insulation test"],["Motor overheating","Voltage imbalance, single-phasing, overload","Measure all phases voltage & current"]];
+const ckT=(id,ph,cls)=>`<input type="text" id="${id}" class="ckf" placeholder="${ph||""}" autocomplete="off"${cls?` style="${cls}"`:""}>`;
+const ckN=id=>`<input type="number" id="${id}" class="ckf" step="any" inputmode="decimal">`;
+const ckC=(id,l)=>`<label class="ck"><input type="checkbox" id="${id}" class="ckf"> ${l}</label>`;
+const ckS=(id,o)=>`<select id="${id}" class="ckf">${o.map(x=>`<option>${x}</option>`).join("")}</select>`;
+const ckH=t=>`<h3 style="margin-top:10px">${t}</h3>`;
+const CK_IDS=[];
+$("ck-root").innerHTML=
+ `<div class="fields"><label>Job / site${ckT("ck-site")}</label><label>Date<input type="date" id="ck-date" class="ckf"></label><label>Technician${ckT("ck-tech")}</label><label>WO #${ckT("ck-wo")}</label><label>Equipment ID / location${ckT("ck-eq")}</label><label>System${ckS("ck-sys",["Single-phase","Three-phase"])}</label><label>Nominal voltage (V)${ckN("ck-nom")}</label><label>Load condition${ckS("ck-load",["Under load","No-load"])}</label></div>`+
+ ckH("1 · Safety checks (NFPA 70E)")+CK_SAFE.map((t,i)=>ckC("ck-s"+i,t)).join("")+
+ ckH("2 · Visual inspection")+CK_VIS.map((t,i)=>ckC("ck-v"+i,t)).join("")+
+ `<div id="ck-1ph">`+ckH("3 · Voltage log: single-phase")+`<div class="ref">120/240 V: ANSI C84.1 Range A service about 114–126 V (120) / 228–252 V (240); utilization slightly lower. Neutral-ground ideally under 2 V.</div><div class="tw ckt"><table><thead><tr><th>Point</th><th>L-N (V)</th><th>L-G (V)</th><th>N-G (V)</th><th>Status</th><th>Notes</th></tr></thead><tbody>`+CK_P1.map((n,i)=>`<tr><td>${n}</td><td>${ckN("ck-a"+i)}</td><td>${ckN("ck-b"+i)}</td><td>${ckN("ck-c"+i)}</td><td id="ck-st1-${i}">—</td><td>${ckT("ck-n1"+i)}</td></tr>`).join("")+`</tbody></table></div>
+ <div class="fields"><label>No-load V${ckN("ck-nl")}</label><label>Under-load V${ckN("ck-ul")}</label><label>Drop %<input id="ck-dp" readonly tabindex="-1"></label></div><div class="flag" id="ck-dflag" hidden></div></div>`+
+ `<div id="ck-3ph">`+ckH("4 · Voltage log: three-phase")+`<div class="ref">% Unbalance = max deviation from average ÷ average × 100. Prefer under 2% for motors; ANSI C84.1 Range A about ±5% at the service.</div><div class="tw ckt"><table><thead><tr><th>Point</th><th>L1-L2</th><th>L2-L3</th><th>L3-L1</th><th>L1-N</th><th>L2-N</th><th>L3-N</th><th>Avg L-L</th><th>% Unbal</th><th>Notes</th></tr></thead><tbody>`+CK_P3.map((n,i)=>`<tr><td>${n}</td>`+[0,1,2,3,4,5].map(j=>`<td>${ckN("ck-t"+i+j)}</td>`).join("")+`<td id="ck-avg${i}">—</td><td id="ck-un${i}">—</td><td>${ckT("ck-n3"+i)}</td></tr>`).join("")+`</tbody></table></div>
+ <label>Phase sequence${ckS("ck-seq",["Not checked","Correct (A-B-C)","Reversed"])}</label><div class="flag" id="ck-3flag" hidden></div></div>`+
+ ckH("5 · Current / load measurements")+`<div class="tw ckt"><table><thead><tr><th>Circuit / phase</th><th>Amps</th><th>Rating (A)</th><th>% of rating</th><th>Notes</th></tr></thead><tbody>`+[0,1,2,3].map(i=>`<tr><td>${ckT("ck-ci"+i)}</td><td>${ckN("ck-ca"+i)}</td><td>${ckN("ck-cr"+i)}</td><td id="ck-cp${i}">—</td><td>${ckT("ck-cn"+i)}</td></tr>`).join("")+`</tbody></table></div><div class="ref">Current imbalance (3φ): prefer under 5–10%. High imbalance often indicates load distribution or single-phasing.</div><div class="flag" id="ck-cflag" hidden></div>`+
+ ckH("6 · Additional diagnostic tests")+`<div class="fields"><label>Insulation resistance (MΩ)${ckN("ck-ir")}</label><label>Grounding / bonding continuity${ckS("ck-gc",["Not tested","Pass","Fail"])}</label><label>GFCI / AFCI function test${ckS("ck-gf",["N/A","Pass","Fail"])}</label><label>Breaker / disconnect operation${ckS("ck-bo",["Not tested","OK","Fault"])}</label><label>Infrared scan (under load ≥ 40% preferred)${ckS("ck-ir2",["No","Yes"])}</label><label>Power quality notes (sags, harmonics, PF)${ckT("ck-pq")}</label></div><div class="flag" id="ck-iflag" hidden></div>`+
+ ckH("7 · Common fault indicators &amp; next steps")+`<div class="tw"><table><thead><tr><th>Symptom</th><th>Likely cause</th><th>Diagnostic action</th></tr></thead><tbody>`+CK_FAULT.map(r=>`<tr>${r.map(c=>`<td style="white-space:normal;min-width:150px">${c}</td>`).join("")}</tr>`).join("")+`</tbody></table></div>`+
+ ckH("8 · Findings, recommendations &amp; sign-off")+`<label>Deficiencies found<textarea id="ck-def" class="ckf"></textarea></label><label>Recommended corrective actions<textarea id="ck-act" class="ckf"></textarea></label><div class="fields"><label>Priority${ckS("ck-pri",["Monitor / trend","Scheduled","Immediate / safety"])}</label><label>Technician signature (typed name)${ckT("ck-sig")}</label><label>Sign-off date<input type="date" id="ck-sd" class="ckf"></label><label>Customer / supervisor acknowledgment${ckT("ck-ack")}</label></div>`;
+const CKKEY="elec-dx-checklist";let CK={};
+try{CK=JSON.parse(localStorage.getItem(CKKEY)||"{}")||{}}catch(e){CK={}}
+function ckLoad(){document.querySelectorAll(".ckf").forEach(el=>{const x=CK[el.id];if(el.type==="checkbox")el.checked=x==="1";else el.value=x!=null?x:(el.tagName==="SELECT"?el.options[0].value:(el.type==="date"&&(el.id==="ck-date")?mtIso(mtToday()):""))})}
+const ckV=id=>parseFloat($(id).value);
+function ckCalc(){
+  const three=$("ck-sys").value==="Three-phase", nom=ckV("ck-nom");
+  $("ck-1ph").hidden=three;$("ck-3ph").hidden=!three;
+  const fl1=[];
+  CK_P1.forEach((n,i)=>{const a=ckV("ck-a"+i),c=ckV("ck-c"+i),m=[];
+    if(!isNaN(c)&&c>=2)m.push("N-G ≥ 2 V");
+    if(!isNaN(a)&&nom&&Math.abs(a-nom)/nom>.05)m.push("L-N outside ±5%");
+    $("ck-st1-"+i).textContent=isNaN(a)&&isNaN(c)?"—":m.length?"⚠ "+m.join(", "):"OK"});
+  const nl=ckV("ck-nl"),ul=ckV("ck-ul"),dp=nl>0&&!isNaN(ul)?(nl-ul)/nl*100:NaN;
+  $("ck-dp").value=isNaN(dp)?"":dp.toFixed(2);
+  const df=$("ck-dflag");df.hidden=isNaN(dp)||dp<=3;df.textContent=dp>5?`⚠ ${dp.toFixed(1)}% drop is over 5%.`:`${dp.toFixed(1)}% drop is over the 3% branch-circuit target.`;
+  const f3=[];
+  CK_P3.forEach((n,i)=>{const LL=[0,1,2].map(j=>ckV("ck-t"+i+j));
+    if(LL.some(isNaN)){$("ck-avg"+i).textContent="—";$("ck-un"+i).textContent="—";return}
+    const avg=(LL[0]+LL[1]+LL[2])/3,u=avg?Math.max(...LL.map(x=>Math.abs(x-avg)))/avg*100:0;
+    $("ck-avg"+i).textContent=avg.toFixed(1);$("ck-un"+i).textContent=u.toFixed(2)+(u>5?" ⚠⚠":u>2?" ⚠":"");
+    if(u>2)f3.push(`⚠ ${n}: unbalance ${u.toFixed(2)}%${u>5?" (over 5%: do not run motors)":" (over the 2% preferred for motors)"}.`);
+    if(nom&&Math.abs(avg-nom)/nom>.05)f3.push(`⚠ ${n}: average ${avg.toFixed(1)} V is outside ±5% of ${nom} V.`);
+    if(LL.some(x=>x===0))f3.push(`⚠ ${n}: a 0 V line-to-line reading means an open phase.`)});
+  if($("ck-seq").value==="Reversed")f3.push("⚠ Phase sequence reversed: motors will run backward.");
+  const t=$("ck-3flag");t.hidden=!f3.length;t.innerHTML=f3.join("<br>");
+  const fc=[];
+  [0,1,2,3].forEach(i=>{const a=ckV("ck-ca"+i),r=ckV("ck-cr"+i);
+    if(!isNaN(a)&&r>0){const p=a/r*100;$("ck-cp"+i).textContent=p.toFixed(0)+"%"+(p>100?" ⚠":p>80?" !":"");if(p>100)fc.push(`⚠ ${lgEsc($("ck-ci"+i).value||"Row "+(i+1))}: ${p.toFixed(0)}% of rating is overloaded.`);else if(p>80)fc.push(`${lgEsc($("ck-ci"+i).value||"Row "+(i+1))}: ${p.toFixed(0)}% of rating is over the 80% continuous-load limit.`)}
+    else $("ck-cp"+i).textContent="—"});
+  const cf=$("ck-cflag");cf.hidden=!fc.length;cf.innerHTML=fc.join("<br>");
+  const ir=ckV("ck-ir"),fi=[];if(!isNaN(ir)&&ir<1)fi.push("⚠ Insulation reading under 1 MΩ: investigate before energizing (typical healthy is above 1 MΩ; trend over time).");
+  if($("ck-gc").value==="Fail")fi.push("⚠ Grounding/bonding continuity failed.");if($("ck-gf").value==="Fail")fi.push("⚠ GFCI/AFCI function test failed.");if($("ck-bo").value==="Fault")fi.push("⚠ Breaker/disconnect operation fault.");
+  const fl=$("ck-iflag");fl.hidden=!fi.length;fl.innerHTML=fi.join("<br>");
+}
+function ckReport(){
+  const g=id=>{const e=$(id);return e.type==="checkbox"?(e.checked?"X":"_"):e.value.trim()};
+  const L=["ELECTRICAL DIAGNOSTIC CHECKLIST",`Job/site: ${g("ck-site")} | Date: ${g("ck-date")} | Tech: ${g("ck-tech")} | WO: ${g("ck-wo")}`,`Equipment: ${g("ck-eq")} | ${g("ck-sys")} | Nominal ${g("ck-nom")} V | ${g("ck-load")}`,"","SAFETY"].concat(CK_SAFE.map((t,i)=>`[${g("ck-s"+i)}] ${t}`),["","VISUAL"],CK_VIS.map((t,i)=>`[${g("ck-v"+i)}] ${t}`),[""]);
+  if($("ck-sys").value==="Three-phase"){L.push("VOLTAGE (3-phase) L1-L2, L2-L3, L3-L1, L1-N, L2-N, L3-N | avg | % unbal");CK_P3.forEach((n,i)=>L.push(`${n}: ${[0,1,2,3,4,5].map(j=>g("ck-t"+i+j)||"-").join(", ")} | ${$("ck-avg"+i).textContent} | ${$("ck-un"+i).textContent} ${g("ck-n3"+i)}`));L.push("Phase sequence: "+g("ck-seq"))}
+  else{L.push("VOLTAGE (single-phase) L-N, L-G, N-G");CK_P1.forEach((n,i)=>L.push(`${n}: ${g("ck-a"+i)||"-"}, ${g("ck-b"+i)||"-"}, ${g("ck-c"+i)||"-"} | ${$("ck-st1-"+i).textContent} ${g("ck-n1"+i)}`));L.push(`Drop: no-load ${g("ck-nl")} V, under-load ${g("ck-ul")} V, ${g("ck-dp")}%`)}
+  L.push("","CURRENT");[0,1,2,3].forEach(i=>{if(g("ck-ci"+i)||g("ck-ca"+i))L.push(`${g("ck-ci"+i)}: ${g("ck-ca"+i)} A of ${g("ck-cr"+i)} A (${$("ck-cp"+i).textContent}) ${g("ck-cn"+i)}`)});
+  L.push("",`TESTS: IR ${g("ck-ir")} MΩ | Grounding ${g("ck-gc")} | GFCI/AFCI ${g("ck-gf")} | Breaker ${g("ck-bo")} | IR scan ${g("ck-ir2")} | PQ: ${g("ck-pq")}`,"",`Deficiencies: ${g("ck-def")}`,`Corrective actions: ${g("ck-act")}`,`Priority: ${g("ck-pri")}`,`Signed: ${g("ck-sig")} ${g("ck-sd")} | Acknowledged: ${g("ck-ack")}`);
+  return L.join("\n")}
+ckLoad();
+$("ck-root").addEventListener("input",e=>{const el=e.target;if(!el.id||!el.classList.contains("ckf"))return;CK[el.id]=el.type==="checkbox"?(el.checked?"1":"0"):el.value;try{localStorage.setItem(CKKEY,JSON.stringify(CK))}catch(x){}});
+$("ck-root").addEventListener("change",e=>{const el=e.target;if(el.id&&el.classList.contains("ckf")&&el.type==="checkbox"){CK[el.id]=el.checked?"1":"0";try{localStorage.setItem(CKKEY,JSON.stringify(CK))}catch(x){}}});
+$("ck-new").addEventListener("click",()=>{if(confirm("Clear this checklist and start a new one?")){CK={};try{localStorage.removeItem(CKKEY)}catch(e){}ckLoad();ckCalc()}});
+$("ck-copy").addEventListener("click",()=>{const t=ckReport(),done=()=>{$("ck-copy").textContent="Copied";setTimeout(()=>$("ck-copy").textContent="Copy report as text",1500)};
+  if(navigator.clipboard)navigator.clipboard.writeText(t).then(done,()=>prompt("Copy this report:",t));else prompt("Copy this report:",t)});
+const all=()=>{ckCalc();dxCalc();gec();bj();egc();rod();par2();genLoad();genOut();genGround();motorCalc();loadCalc();xfCalc();sbCalc();vdTab();evCalc();cfCalc();bxCalc();pbCalc();pvCalc();wcCalc();pieCalc();waCalc();clCalc();ccCalc(false);spCalc();mcCalc()};
 document.querySelectorAll("select,input").forEach(e=>e.addEventListener("input",all));
 $("tool").addEventListener("change",e=>{const b=document.querySelector(`nav button[data-p="${e.target.value}"]`);if(b){b.click();window.scrollTo(0,0)}});
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{
