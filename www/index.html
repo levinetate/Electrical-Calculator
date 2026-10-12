@@ -177,6 +177,9 @@ footer{color:var(--muted);font-size:.82rem}
       <option value="p-bx">Box sizing</option>
       <option value="p-wc">Wire &amp; phase colors</option>
     </optgroup>
+    <optgroup label="Troubleshooting">
+      <option value="p-dx">Electrical diagnostics</option>
+    </optgroup>
   </select>
 </label>
 
@@ -199,6 +202,7 @@ footer{color:var(--muted);font-size:.82rem}
   <button role="tab" id="t-wc" aria-selected="false" data-p="p-wc">Colors</button>
   <button role="tab" id="t-cc" aria-selected="false" data-p="p-cc">Construction</button>
   <button role="tab" id="t-pie" aria-selected="false" data-p="p-pie">PIE</button>
+  <button role="tab" id="t-dx" aria-selected="false" data-p="p-dx">Diagnostics</button>
   <button role="tab" id="t-wa" aria-selected="false" data-p="p-wa">Watts/Amps</button>
 </nav>
 
@@ -1078,6 +1082,94 @@ footer{color:var(--muted);font-size:.82rem}
       <li>One cord-and-plug load can't exceed 80% of a 15 or 20 A circuit's rating (210.21(B)(2)). Fixed-in-place equipment can't exceed 50% when lights or receptacles share the circuit (210.23(A)(2)).</li>
     </ul>
   </div>
+</section>
+
+<!-- Diagnostics -->
+<section class="panel" id="p-dx" role="tabpanel" hidden>
+  <div><h2>Electrical Diagnostics</h2><div class="ref">Meter readings → what they mean · ANSI C84.1 · NEMA MG1 · IEEE 43 · 210.19 Info. Note 4 · 215.2 Info. Note 2</div></div>
+
+  <div class="block" style="border-top:0;padding-top:0">
+    <h3>A · Supply voltage &amp; unbalance</h3>
+    <div class="fields">
+      <label>System<select id="dx-ph"><option value="1">Single-phase / one reading</option><option value="3" selected>Three-phase (L-L readings)</option></select></label>
+      <label>Nominal voltage<select id="dx-vn"><option>120</option><option>208</option><option>240</option><option>277</option><option selected>480</option><option>600</option></select></label>
+      <label>Reading 1 (V)<input id="dx-v1" type="number" min="0" step="any" value="477" inputmode="decimal"></label>
+      <label class="dx-3">Reading 2 (V)<input id="dx-v2" type="number" min="0" step="any" value="482" inputmode="decimal"></label>
+      <label class="dx-3">Reading 3 (V)<input id="dx-v3" type="number" min="0" step="any" value="468" inputmode="decimal"></label>
+    </div>
+    <div class="result" id="dx-a-out"></div>
+    <div class="flag" id="dx-a-flag" hidden></div>
+    <pre class="calc" id="dx-a-c"></pre>
+  </div>
+
+  <div class="block">
+    <h3>B · Motor / load current &amp; unbalance</h3>
+    <div class="fields">
+      <label>System<select id="dx-ph2"><option value="1">Single-phase</option><option value="3" selected>Three-phase</option></select></label>
+      <label>Nameplate FLA (A)<input id="dx-fla" type="number" min="0" step="any" value="34" inputmode="decimal"></label>
+      <label>Service factor<input id="dx-sf" type="number" min="1" max="1.5" step="0.05" value="1.15" inputmode="decimal"></label>
+      <label>Line 1 (A)<input id="dx-i1" type="number" min="0" step="any" value="31" inputmode="decimal"></label>
+      <label class="dx-3b">Line 2 (A)<input id="dx-i2" type="number" min="0" step="any" value="35" inputmode="decimal"></label>
+      <label class="dx-3b">Line 3 (A)<input id="dx-i3" type="number" min="0" step="any" value="38" inputmode="decimal"></label>
+    </div>
+    <div class="result" id="dx-b-out"></div>
+    <div class="flag" id="dx-b-flag" hidden></div>
+    <pre class="calc" id="dx-b-c"></pre>
+  </div>
+
+  <div class="block">
+    <h3>C · Insulation resistance (megger)</h3>
+    <div class="fields">
+      <label>Testing<select id="dx-it"><option value="w" selected>Motor / generator winding</option><option value="c">Cable, wiring, switchgear</option></select></label>
+      <label>Rated voltage (V)<input id="dx-ir" type="number" min="1" step="any" value="480" inputmode="decimal"></label>
+      <label>1-minute reading (MΩ)<input id="dx-r1" type="number" min="0" step="any" value="120" inputmode="decimal"></label>
+      <label class="dx-pi">10-minute reading (MΩ)<input id="dx-r10" type="number" min="0" step="any" value="300" inputmode="decimal"></label>
+      <label>Winding / cable temp (°F)<input id="dx-it-f" type="number" step="any" value="85" inputmode="decimal"></label>
+    </div>
+    <div class="result" id="dx-c-out"></div>
+    <div class="flag" id="dx-c-flag" hidden></div>
+    <pre class="calc" id="dx-c-c"></pre>
+  </div>
+
+  <div class="block">
+    <h3>D · Loaded voltage drop (hunting a bad connection)</h3>
+    <div class="fields">
+      <label>Circuit<select id="dx-dsys"><option value="120|1" selected>120 V 1φ</option><option value="240|1">240 V 1φ</option><option value="208|3">208 V 3φ</option><option value="480|3">480 V 3φ</option></select></label>
+      <label>Voltage, load OFF (V)<input id="dx-vnl" type="number" min="0" step="any" value="121.0" inputmode="decimal"></label>
+      <label>Voltage, load ON (V)<input id="dx-vl" type="number" min="0" step="any" value="115.2" inputmode="decimal"></label>
+      <label>Load current (A)<input id="dx-di" type="number" min="0" step="any" value="12" inputmode="decimal"></label>
+      <label>One-way length (ft)<input id="dx-dl" type="number" min="0" step="any" value="60" inputmode="decimal"></label>
+      <label>Wire size<select id="dx-dsz"></select></label>
+      <label>Material<select id="dx-dmat"><option value="cu" selected>Copper</option><option value="al">Aluminum</option></select></label>
+    </div>
+    <div class="result" id="dx-d-out"></div>
+    <div class="flag" id="dx-d-flag" hidden></div>
+    <pre class="calc" id="dx-d-c"></pre>
+  </div>
+
+  <div class="block">
+    <h3>E · Heating element check (power off, element isolated)</h3>
+    <div class="fields">
+      <label>Nameplate watts<input id="dx-ew" type="number" min="0" step="any" value="4500" inputmode="decimal"></label>
+      <label>Nameplate volts<input id="dx-ev" type="number" min="0" step="any" value="240" inputmode="decimal"></label>
+      <label>Measured ohms<input id="dx-eo" type="number" min="0" step="any" value="12.9" inputmode="decimal"></label>
+    </div>
+    <div class="result" id="dx-e-out"></div>
+    <div class="flag" id="dx-e-flag" hidden></div>
+    <pre class="calc" id="dx-e-c"></pre>
+  </div>
+
+  <div class="block">
+    <h3>F · Symptom checklist</h3>
+    <div class="fields"><label>Symptom<select id="dx-sym"></select></label></div>
+    <ol class="notes" id="dx-sym-out"></ol>
+  </div>
+
+  <ul class="notes">
+    <li>Readings only; this does not replace lockout/tagout, a live-dead-live meter check, or the arc-flash PPE your site requires. Measure on a known-good meter and verify the adopted code and the AHJ.</li>
+    <li>Voltage is screened against &plusmn;5% (ANSI C84.1 Range A) and &plusmn;10% as a field check, not a code limit.</li>
+    <li>The 3% branch / 5% feeder-plus-branch figures are recommendations (210.19(A) and 215.2(A) Informational Notes), not mandatory limits.</li>
+  </ul>
 </section>
 
 <!-- Construction calculator -->
@@ -2634,7 +2726,94 @@ document.querySelectorAll("[data-der]").forEach(el=>{el.outerHTML=derUI(el.datas
 const DERPRE={mo:["mo-c1","mo-c2","tp-c"],gen:["gn-c"],xf:["xf-c3"],sb:["mc-c1","mc-c2","sb-c"],ev:["ev-c1","ev-c2"],ld:["ld-c"]};
 function wrapDer(fn,k){return function(){DER=derOf(k);try{return fn.apply(this,arguments)}finally{const D=DER;DER=null;if(D&&D.on)(DERPRE[k]||[]).forEach(id=>{const e=$(id);if(e&&e.textContent)e.textContent+=`\n\nDerating applied to all conductor sizes above: ${D.txt}`})}}}
 motorCalc=wrapDer(motorCalc,"mo");genOut=wrapDer(genOut,"gen");xfCalc=wrapDer(xfCalc,"xf");sbCalc=wrapDer(sbCalc,"sb");evCalc=wrapDer(evCalc,"ev");loadCalc=wrapDer(loadCalc,"ld");
-const all=()=>{gec();bj();egc();rod();par2();genLoad();genOut();genGround();motorCalc();loadCalc();xfCalc();sbCalc();vdTab();evCalc();cfCalc();bxCalc();pbCalc();pvCalc();wcCalc();pieCalc();waCalc();clCalc();ccCalc(false);spCalc();mcCalc()};
+// ===== Diagnostics =====
+const DX_SYM=[
+ ["Breaker trips instantly on reset",["Disconnect all loads and reset: still trips = fault in the wiring or breaker, not the load.","Megger or ohm each conductor to ground and to each other (Section C). Look for pinched or nail-struck cable.","Neutral touching ground or crossed neutrals on a shared/multiwire circuit trip AFCI/GFCI breakers.","Try a known-good breaker of the same type (replace only with the listed type)."]],
+ ["Breaker trips after running a while",["Clamp the current (Section B). Compare it to the breaker rating; continuous loads may only use 80% (210.20(A)).","Check for a hot breaker or loose lug: thermal scan or temperature, and re-torque to the marked value.","Motors and compressors: high amps from low voltage, bad bearings or a failing capacitor (Sections A, B).","Heat build-up: crowded conduit, high ambient or buried cable."]],
+ ["Lights dim, flicker or surge",["Loose neutral or splice at the panel, meter base or a device: measure voltage with the load on and off (Section D).","Voltage drops when a large load starts: compare the drop to 3%/5%, and check the service conductors and connections.","On 3-wire 120/240 V service, one leg high and one low means an open or loose service neutral. Shut loads off and fix it quickly: the high leg can burn out equipment.","Dimmer incompatible with LED lamps."]],
+ ["Half the circuits / lights out (120/240 V)",["Measure L1-N and L2-N at the main: unequal voltages mean an open neutral.","Check the neutral lug and bus, the service neutral and the meter socket jaws.","On a multiwire branch circuit, an open shared neutral makes the two legs act in series: voltage swings from low to high depending on the loads."]],
+ ["Receptacle or switch is hot / discolored",["Shut off and inspect for burned insulation or a loose terminal. Back-stabbed connections are a common failure.","Measure drop through the device under load (Section D). More than a few tenths of a volt across one device means a bad connection.","Check that the device rating suits the load and that the wire size suits the breaker (240.4(D))."]],
+ ["GFCI or AFCI keeps tripping",["Unplug everything downstream and reset. If it holds, plug loads back in one at a time.","Neutral shared between circuits, or neutral-to-ground contact on the load side.","Ground leakage: megger the circuit with devices disconnected (Section C). Moisture in outdoor or damp boxes is the most common cause.","Some older motors and heaters leak enough to trip a GFCI; check the leakage current."]],
+ ["Tingle or shock on metal parts",["Treat as unsafe. Isolate the equipment, then check for voltage from the frame to a known ground and to the neutral.","Check the EGC continuity back to the panel, and the neutral-to-ground bond (only at the service or separately derived system, 250.24, 250.30).","Open neutral on the circuit can energize the metal parts of grounded appliances.","Check for reversed polarity and for damaged cord or element insulation (Sections C and E)."]],
+ ["Three-phase motor hot, noisy or humming",["Measure all three line voltages (Section A) and currents (Section B): single-phasing shows one line near zero and the other two high.","Check for voltage unbalance above 1% (NEMA MG1 says derate) and fuses, contactor contacts and overload relays for an open phase.","Check winding insulation resistance and PI (Section C).","Check bearings, coupling alignment and the cooling airflow."]],
+ ["Motor draws more than nameplate",["High or low voltage (Section A); motors draw more amps at low voltage.","Mechanical load: jam, wrong belt tension, fouled pump or fan, bad bearing.","Compare against nameplate FLA and the service factor limit (Section B).","Check power factor correction capacitors and VFD output settings."]],
+ ["Heater or oven does not heat",["Confirm voltage at the element terminals with power on, then power off and ohm the element (Section E).","Test the thermostat, high-limit and contactor or relay.","Open element reads infinite ohms; shorted-turn or partial failure reads low."]],
+ ["Equipment dead, no power",["Check the breaker, since a tripped breaker can look 'on' in the middle position.","Check for voltage at the panel, the disconnect, the load terminals: work toward the load until the voltage disappears.","Look for tripped GFCIs upstream, blown fuses, and loose neutral or hot at splice points.","Check the control circuit separately: transformer fuse, E-stop, overload contacts."]]
+];
+DX_SYM.forEach((s,i)=>$("dx-sym").add(new Option(s[0],i)));
+SIZES.forEach(([s])=>$("dx-dsz").add(new Option(label(s),s)));$("dx-dsz").value="12";
+function dxFlags(id,arr){const f=$(id);f.hidden=!arr.length;f.innerHTML=arr.join("<br>")}
+function dxCalc(){
+  // A · voltage
+  {const Vn=+$("dx-vn").value,three=$("dx-ph").value==="3";
+   document.querySelectorAll(".dx-3").forEach(e=>e.hidden=!three);
+   const vals=three?[v("dx-v1"),v("dx-v2"),v("dx-v3")]:[v("dx-v1")];
+   const avg=vals.reduce((a,b)=>a+b,0)/vals.length, dev=(avg-Vn)/Vn*100;
+   const mx=Math.max(...vals.map(x=>Math.abs(x-avg))), unb=three&&avg?mx/avg*100:0, fl=[];
+   if(vals.some(x=>x===0))fl.push("⚠ A reading of 0 V: open phase, open fuse/breaker pole or a bad meter lead.");
+   if(Math.abs(dev)>10)fl.push(`⚠ Average is ${dev.toFixed(1)}% from nominal: outside ±10%. Check the transformer tap, utility voltage and drop in the feeder.`);
+   else if(Math.abs(dev)>5)fl.push(`⚠ Average is ${dev.toFixed(1)}% from nominal: outside ±5% (ANSI C84.1 Range A).`);
+   if(three&&unb>5)fl.push(`⚠ Unbalance ${unb.toFixed(2)}%: above 5%; NEMA MG1 says do not run motors on this supply. Find the cause first.`);
+   else if(three&&unb>1)fl.push(`⚠ Unbalance ${unb.toFixed(2)}%: above 1%; motors must be derated (NEMA MG1 14.36). Expect roughly 6–10× that in current unbalance.`);
+   $("dx-a-out").innerHTML=plate("Average",avg.toFixed(1),"V",true)+plate("From nominal",(dev>=0?"+":"")+dev.toFixed(1),"%")+(three?plate("Unbalance",unb.toFixed(2),"%"):"");
+   $("dx-a-c").textContent=three?`Average = (${vals.join(" + ")}) ÷ 3 = ${avg.toFixed(1)} V\nFrom nominal = (${avg.toFixed(1)} − ${Vn}) ÷ ${Vn} = ${dev.toFixed(2)}%\nUnbalance = max deviation from average ÷ average = ${mx.toFixed(1)} ÷ ${avg.toFixed(1)} = ${unb.toFixed(2)}% (NEMA MG1 14.35)`:`From nominal = (${avg.toFixed(1)} − ${Vn}) ÷ ${Vn} = ${dev.toFixed(2)}%`;
+   dxFlags("dx-a-flag",fl)}
+  // B · current
+  {const three=$("dx-ph2").value==="3", FLA=v("dx-fla"), sf=Math.max(1,v("dx-sf")||1);
+   document.querySelectorAll(".dx-3b").forEach(e=>e.hidden=!three);
+   const vals=three?[v("dx-i1"),v("dx-i2"),v("dx-i3")]:[v("dx-i1")];
+   const avg=vals.reduce((a,b)=>a+b,0)/vals.length, mx=Math.max(...vals.map(x=>Math.abs(x-avg)));
+   const unb=three&&avg?mx/avg*100:0, pct=FLA?avg/FLA*100:0, lim=FLA*sf, fl=[];
+   if(three&&vals.some(x=>x===0)&&vals.some(x=>x>0))fl.push("⚠ One line reads 0 A: single-phasing (open fuse, contact, connection or winding).");
+   if(FLA&&Math.max(...vals)>lim)fl.push(`⚠ A line is above FLA × SF (${lim.toFixed(1)} A): overload. Check voltage (Section A), mechanical load and overload relay setting (430.32: 115% for SF ≥ 1.15).`);
+   else if(FLA&&Math.max(...vals)>FLA)fl.push(`Highest line is above nameplate FLA but inside the service factor (${lim.toFixed(1)} A). It runs hot continuously.`);
+   if(three&&unb>10)fl.push(`⚠ Current unbalance ${unb.toFixed(1)}%: above 10%. Check voltage unbalance, loose connections, and a shorted winding.`);
+   else if(three&&unb>5)fl.push(`Current unbalance ${unb.toFixed(1)}%: moderate. Compare with voltage unbalance (Section A): current unbalance about 6–10× voltage unbalance is normal.`);
+   if(FLA&&pct<40&&avg>0)fl.push(`Motor is lightly loaded (${pct.toFixed(0)}% of FLA): low power factor and wasted energy; check the driven load.`);
+   $("dx-b-out").innerHTML=plate("Average",avg.toFixed(1),"A",true)+(FLA?plate("% of FLA",pct.toFixed(0),"%"):"")+(three?plate("Unbalance",unb.toFixed(1),"%"):"")+(FLA?plate("FLA × SF",lim.toFixed(1),"A max"):"");
+   $("dx-b-c").textContent=`Average = (${vals.join(" + ")}) ÷ ${vals.length} = ${avg.toFixed(2)} A`+(FLA?`\n% of FLA = ${avg.toFixed(2)} ÷ ${FLA} = ${pct.toFixed(0)}%\nLimit = ${FLA} A × ${sf} SF = ${lim.toFixed(1)} A`:"")+(three?`\nUnbalance = ${mx.toFixed(2)} ÷ ${avg.toFixed(2)} = ${unb.toFixed(1)}%`:"");
+   dxFlags("dx-b-flag",fl)}
+  // C · insulation resistance
+  {const w=$("dx-it").value==="w", Vr=Math.max(1,v("dx-ir")), r1=v("dx-r1"), r10=v("dx-r10"), F=parseFloat($("dx-it-f").value);
+   document.querySelectorAll(".dx-pi").forEach(e=>e.hidden=!w);
+   const Tc=((isNaN(F)?77:F)-32)/1.8, kt=Math.pow(.5,(40-Tc)/10), r40=r1*kt, fl=[];
+   let test,min,src;
+   if(w){test=Vr<1000?"500 V":Vr<=2500?"500–1000 V":Vr<=5000?"1000–2500 V":"2500–5000 V";min=Math.max(1,Vr/1000+1);src="IEEE 43: min = rated kV + 1 MΩ (at least 1 MΩ), corrected to 40 °C"}
+   else{[test,min]=Vr<=300?["250 V",25]:Vr<=600?["500 V",100]:Vr<=1000?["1000 V",500]:Vr<=5000?["2500 V",1000]:["5000 V",2000];src="typical NETA ATS acceptance value; use the manufacturer's value if different"}
+   const pi=r1?r10/r1:0, ok=r40>=min;
+   if(r1===0)fl.push("⚠ Reading of 0 MΩ: dead short to ground or between conductors.");
+   else if(!ok)fl.push(`⚠ ${r40.toFixed(1)} MΩ at 40 °C is below the ${min.toFixed(min%1?1:0)} MΩ minimum. Clean and dry the winding/cable and retest; if it stays low, the insulation is failing.`);
+   if(w&&r10>0&&pi<2)fl.push(`⚠ Polarization index ${pi.toFixed(2)} is below 2.0: moisture or contamination (IEEE 43). ${pi<1?"Below 1.0 is dangerous: do not energize.":""}`);
+   if(w&&r1>5000)fl.push("Reading above 5000 MΩ: PI can read near 1 on very good insulation; ignore PI when the 1-minute value is that high.");
+   $("dx-c-out").innerHTML=plate("At 40 °C",r40.toFixed(1),"MΩ",true)+plate("Minimum",min.toFixed(min%1?1:0),"MΩ")+plate("Test voltage",test,"")+(w&&r10?plate("PI (10÷1 min)",pi.toFixed(2),"≥ 2.0"):"");
+   $("dx-c-c").textContent=`Temp = (${isNaN(F)?77:F} − 32) ÷ 1.8 = ${Tc.toFixed(1)} °C\nKt = 0.5^((40 − ${Tc.toFixed(1)}) ÷ 10) = ${kt.toFixed(3)} (halves for every 10 °C rise)\nR40 = ${r1} MΩ × ${kt.toFixed(3)} = ${r40.toFixed(1)} MΩ\nMinimum ${min.toFixed(min%1?1:0)} MΩ: ${src}`+(w?`\nPI = ${r10} ÷ ${r1} = ${pi.toFixed(2)}`:"");
+   dxFlags("dx-c-flag",fl)}
+  // D · loaded drop
+  {const [V,ph]=$("dx-dsys").value.split("|").map(Number), vnl=v("dx-vnl"), vl=v("dx-vl"), I=v("dx-di"), L=v("dx-dl"), mat=$("dx-dmat").value, s=$("dx-dsz").value, fl=[];
+   const dv=vnl-vl, pct=vnl?dv/vnl*100:0, R=I?dv/I:0;
+   let exp=0,txt="";
+   if(L&&I&&!(mat==="al"&&s==="14")){const r=vdOf(I,L,{s,sets:1},mat,V,ph);exp=r.vd;txt=`\nExpected drop in the wire alone (${label(s)} ${mat==="al"?"Al":"Cu"}, ${L} ft, ${I} A) = ${exp.toFixed(2)} V`}
+   if(I&&dv<0)fl.push("Load-on voltage is higher than load-off: re-measure.");
+   if(pct>5)fl.push(`⚠ ${pct.toFixed(1)}% drop at the load is over 5%.`);
+   else if(pct>3)fl.push(`${pct.toFixed(1)}% is over the 3% branch-circuit recommendation (210.19(A) Info. Note 4).`);
+   if(exp&&dv>exp*1.5&&dv-exp>1)fl.push(`⚠ Measured drop (${dv.toFixed(2)} V) is well above the wire's ${exp.toFixed(2)} V: there is about ${(dv-exp).toFixed(2)} V (${(R-exp/I).toFixed(3)} Ω) of extra resistance: look for a loose lug, burnt splice, worn switch/receptacle or a bad breaker. Measure drop across each connection to find it.`);
+   $("dx-d-out").innerHTML=plate("Drop",dv.toFixed(2),"V",true)+plate("Drop %",pct.toFixed(1),"%")+plate("Loop resistance",R.toFixed(3),"Ω")+(exp?plate("Wire only",exp.toFixed(2),"V expected"):"");
+   $("dx-d-c").textContent=`Drop = ${vnl} − ${vl} = ${dv.toFixed(2)} V = ${pct.toFixed(2)}% of ${vnl} V\nLoop R = ${dv.toFixed(2)} V ÷ ${I} A = ${R.toFixed(3)} Ω`+txt;
+   dxFlags("dx-d-flag",fl)}
+  // E · heating element
+  {const W=v("dx-ew"), Ve=v("dx-ev"), R=v("dx-eo"), fl=[];
+   const exp=W?Ve*Ve/W:0, dev=exp?(R-exp)/exp*100:0, I=Ve?W/Ve:0;
+   if(R===0)fl.push("⚠ 0 Ω: shorted element or lead.");
+   else if(exp&&R>exp*5)fl.push("⚠ Reads open or very high: burnt-out element.");
+   else if(exp&&Math.abs(dev)>10)fl.push(`⚠ ${dev.toFixed(0)}% from expected: outside the usual ±10% tolerance. ${dev>0?"High: damaged or partly burnt element.":"Low: shorted turns or wrong element."}`);
+   fl.push("Also test each terminal to the element sheath/frame: it should read open (no continuity). Any reading means a grounded element.");
+   $("dx-e-out").innerHTML=plate("Expected",exp.toFixed(1),"Ω (hot)",true)+plate("Measured",R,"Ω")+plate("Deviation",(dev>=0?"+":"")+dev.toFixed(0),"%")+plate("Rated current",I.toFixed(1),"A");
+   $("dx-e-c").textContent=`R = V² ÷ W = ${Ve}² ÷ ${W} = ${exp.toFixed(2)} Ω\nI = W ÷ V = ${I.toFixed(2)} A\nDeviation = (${R} − ${exp.toFixed(2)}) ÷ ${exp.toFixed(2)} = ${dev.toFixed(1)}%\nCompare cold ohms to the rating within the usual tolerance (about ±10%).`;
+   dxFlags("dx-e-flag",fl)}
+  // F · symptoms
+  $("dx-sym-out").innerHTML=DX_SYM[+$("dx-sym").value][1].map(t=>`<li>${t}</li>`).join("");
+}
+const all=()=>{dxCalc();gec();bj();egc();rod();par2();genLoad();genOut();genGround();motorCalc();loadCalc();xfCalc();sbCalc();vdTab();evCalc();cfCalc();bxCalc();pbCalc();pvCalc();wcCalc();pieCalc();waCalc();clCalc();ccCalc(false);spCalc();mcCalc()};
 document.querySelectorAll("select,input").forEach(e=>e.addEventListener("input",all));
 $("tool").addEventListener("change",e=>{const b=document.querySelector(`nav button[data-p="${e.target.value}"]`);if(b){b.click();window.scrollTo(0,0)}});
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{
