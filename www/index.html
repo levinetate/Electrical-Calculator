@@ -1175,7 +1175,36 @@ footer{color:var(--muted);font-size:.82rem}
   </div>
 
   <div class="block">
-    <h3>G · Symptom checklist</h3>
+    <h3>G · Motor insulation test log (winding to ground)</h3>
+    <div class="fields">
+      <label>Motor tag / name<input id="lg-id" type="text" value="" placeholder="e.g. AHU-3 supply fan" autocomplete="off"></label>
+      <label>Date<input id="lg-date" type="date"></label>
+      <label>Rated voltage (V)<input id="lg-v" type="number" min="1" step="any" value="480" inputmode="decimal"></label>
+      <label>Tester voltage<select id="lg-tv"><option>500</option><option selected>1000</option><option>2500</option><option>5000</option></select></label>
+      <label>1-minute (M&Omega;)<input id="lg-r1" type="number" min="0" step="any" value="" inputmode="decimal"></label>
+      <label>10-minute (M&Omega;)<input id="lg-r10" type="number" min="0" step="any" value="" inputmode="decimal"></label>
+      <label>Winding temp (&deg;F)<input id="lg-t" type="number" step="any" value="77" inputmode="decimal"></label>
+      <label>Notes<input id="lg-n" type="text" value="" placeholder="optional" autocomplete="off"></label>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" id="lg-add" type="button">Add to log</button>
+      <button class="btn" id="lg-copy" type="button">Copy as CSV</button>
+      <button class="btn" id="lg-clear" type="button">Clear log</button>
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>Date</th><th>Motor</th><th>1 min</th><th>At 40 &deg;C</th><th>PI</th><th>Status</th><th></th></tr></thead>
+      <tbody id="lg-rows"></tbody>
+    </table></div>
+    <div class="flag" id="lg-flag" hidden></div>
+    <ul class="notes">
+      <li>Test with the motor locked out and the T1, T2, T3 leads tied together and disconnected from the starter/drive, measuring to the frame. Discharge the winding after each test.</li>
+      <li>Readings are corrected to 40 &deg;C, with the minimum from IEEE 43 (rated kV + 1 M&Omega;) and PI &ge; 2.0. A trend matters more than one number: a drop of half or more between tests is a warning.</li>
+      <li>The log is kept only on this device (browser/app storage). Use Copy as CSV to back it up.</li>
+    </ul>
+  </div>
+
+  <div class="block">
+    <h3>H · Symptom checklist</h3>
     <div class="fields"><label>Symptom<select id="dx-sym"></select></label></div>
     <ol class="notes" id="dx-sym-out"></ol>
   </div>
@@ -2839,6 +2868,32 @@ function dxCalc(){
   // G · symptoms
   $("dx-sym-out").innerHTML=DX_SYM[+$("dx-sym").value][1].map(t=>`<li>${t}</li>`).join("");
 }
+// ----- insulation test log -----
+let DXLOG=[];const LGKEY="elec-dx-ir-log";
+try{DXLOG=JSON.parse(localStorage.getItem(LGKEY)||"[]");if(!Array.isArray(DXLOG))DXLOG=[]}catch(e){DXLOG=[]}
+function lgSave(){try{localStorage.setItem(LGKEY,JSON.stringify(DXLOG))}catch(e){}}
+const lgEsc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function lgCalc(e){const Tc=((isNaN(e.t)?77:e.t)-32)/1.8, r40=e.r1*Math.pow(.5,(40-Tc)/10), min=Math.max(1,e.v/1000+1), pi=e.r1&&e.r10?e.r10/e.r1:0;
+  const bad=[];if(r40<min)bad.push("low IR");if(e.r10&&pi<2&&e.r1<=5000)bad.push("low PI");return{r40,min,pi,bad}}
+function renderLg(){
+  const rows=DXLOG.map((e,i)=>({e,i,c:lgCalc(e)})).sort((a,b)=>(a.e.d+"").localeCompare(b.e.d+"")||a.i-b.i);
+  const last={},fl=[];
+  rows.forEach(o=>{const k=o.e.id.trim().toLowerCase(),pv=last[k];o.drop=pv&&pv.c.r40>0&&o.c.r40<pv.c.r40*.5?pv:null;last[k]=o;
+    if(o.drop)fl.push(`⚠ ${lgEsc(o.e.id||"Motor")}: ${o.c.r40.toFixed(1)} MΩ on ${lgEsc(o.e.d)} is under half of ${pv.c.r40.toFixed(1)} MΩ on ${lgEsc(pv.e.d)}.`)});
+  $("lg-rows").innerHTML=rows.slice().reverse().map(o=>`<tr><td>${lgEsc(o.e.d)}</td><td>${lgEsc(o.e.id||"—")}${o.e.n?`<br><small>${lgEsc(o.e.n)}</small>`:""}</td><td>${o.e.r1}</td><td>${o.c.r40.toFixed(1)}</td><td>${o.c.pi?o.c.pi.toFixed(2):"—"}</td><td>${o.c.bad.length||o.drop?"⚠ "+o.c.bad.concat(o.drop?["dropped"]:[]).join(", "):"OK"}</td><td><button class="btn" data-lgdel="${o.i}" type="button">✕</button></td></tr>`).join("")||`<tr><td colspan="7">No tests logged yet.</td></tr>`;
+  const f=$("lg-flag");f.hidden=!fl.length;f.innerHTML=fl.join("<br>");
+}
+$("lg-date").value=new Date().toISOString().slice(0,10);
+$("lg-add").addEventListener("click",()=>{const r1=parseFloat($("lg-r1").value);if(!(r1>=0))return;
+  DXLOG.push({id:$("lg-id").value.trim(),d:$("lg-date").value||new Date().toISOString().slice(0,10),v:v("lg-v")||480,tv:+$("lg-tv").value,r1,r10:v("lg-r10"),t:parseFloat($("lg-t").value),n:$("lg-n").value.trim()});
+  lgSave();$("lg-r1").value="";$("lg-r10").value="";$("lg-n").value="";renderLg()});
+$("lg-rows").addEventListener("click",e=>{const d=e.target.dataset.lgdel;if(d!=null){DXLOG.splice(+d,1);lgSave();renderLg()}});
+$("lg-clear").addEventListener("click",()=>{if(DXLOG.length&&confirm("Delete every logged test on this device?")){DXLOG=[];lgSave();renderLg()}});
+$("lg-copy").addEventListener("click",()=>{const q=t=>'"'+String(t).replace(/"/g,'""')+'"';
+  const csv=["date,motor,rated_V,test_V,r1_MOhm,r10_MOhm,temp_F,r40_MOhm,PI,notes"].concat(DXLOG.map(e=>{const c=lgCalc(e);return[e.d,q(e.id),e.v,e.tv,e.r1,e.r10,e.t,c.r40.toFixed(2),c.pi.toFixed(2),q(e.n)].join(",")})).join("\n");
+  const done=()=>{$("lg-copy").textContent="Copied";setTimeout(()=>$("lg-copy").textContent="Copy as CSV",1500)};
+  if(navigator.clipboard)navigator.clipboard.writeText(csv).then(done,()=>prompt("Copy this CSV:",csv));else prompt("Copy this CSV:",csv)});
+renderLg();
 const all=()=>{dxCalc();gec();bj();egc();rod();par2();genLoad();genOut();genGround();motorCalc();loadCalc();xfCalc();sbCalc();vdTab();evCalc();cfCalc();bxCalc();pbCalc();pvCalc();wcCalc();pieCalc();waCalc();clCalc();ccCalc(false);spCalc();mcCalc()};
 document.querySelectorAll("select,input").forEach(e=>e.addEventListener("input",all));
 $("tool").addEventListener("change",e=>{const b=document.querySelector(`nav button[data-p="${e.target.value}"]`);if(b){b.click();window.scrollTo(0,0)}});
