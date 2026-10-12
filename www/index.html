@@ -1229,7 +1229,44 @@ footer{color:var(--muted);font-size:.82rem}
   </div>
 
   <div class="block">
-    <h3>I · Symptom checklist</h3>
+    <h3>I · Motor nameplate data log</h3>
+    <div class="fields">
+      <label>Tag / name<input id="np-id" type="text" placeholder="e.g. AHU-3 supply fan" autocomplete="off"></label>
+      <label>Location<input id="np-loc" type="text" autocomplete="off"></label>
+      <label>Manufacturer<input id="np-mfr" type="text" autocomplete="off"></label>
+      <label>Model / serial<input id="np-mod" type="text" autocomplete="off"></label>
+      <label>Frame<input id="np-fr" type="text" placeholder="e.g. 324T" autocomplete="off"></label>
+      <label>Horsepower<input id="np-hp" type="number" min="0" step="any" inputmode="decimal"></label>
+      <label>Phase<select id="np-ph"><option value="3" selected>3-phase</option><option value="1">Single-phase</option></select></label>
+      <label>Voltage<input id="np-v" type="number" min="0" step="any" value="460" inputmode="decimal"></label>
+      <label>FLA (A)<input id="np-fla" type="number" min="0" step="any" inputmode="decimal"></label>
+      <label>RPM<input id="np-rpm" type="number" min="0" step="any" inputmode="decimal"></label>
+      <label>Hz<select id="np-hz"><option selected>60</option><option>50</option></select></label>
+      <label>Service factor<input id="np-sf" type="number" min="1" step="0.05" value="1.15" inputmode="decimal"></label>
+      <label>Code letter<select id="np-code"><option value="">—</option></select></label>
+      <label>Insulation class<select id="np-ins"><option value="">—</option><option>A</option><option>B</option><option>F</option><option>H</option></select></label>
+      <label>Enclosure<input id="np-enc" type="text" placeholder="ODP, TEFC…" autocomplete="off"></label>
+      <label>Efficiency (%)<input id="np-eff" type="number" min="0" max="100" step="any" inputmode="decimal"></label>
+      <label>Power factor<input id="np-pf" type="number" min="0" max="1" step="0.01" inputmode="decimal"></label>
+      <label>Notes<input id="np-n" type="text" autocomplete="off"></label>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" id="np-add" type="button">Save nameplate</button>
+      <button class="btn" id="np-copy" type="button">Copy as CSV</button>
+      <button class="btn" id="np-clear" type="button">Clear all</button>
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>Motor</th><th>HP</th><th>V</th><th>FLA</th><th>RPM</th><th></th></tr></thead>
+      <tbody id="np-rows"></tbody>
+    </table></div>
+    <ul class="notes">
+      <li>Tap Use on a saved motor to fill its HP, voltage, FLA, service factor and code letter into the current, starting-current and insulation-log sections above.</li>
+      <li>Saved only on this device (browser/app storage). Use Copy as CSV to back it up. Take a photo of the nameplate too: the nameplate wins if a typed value is wrong.</li>
+    </ul>
+  </div>
+
+  <div class="block">
+    <h3>J · Symptom checklist</h3>
     <div class="fields"><label>Symptom<select id="dx-sym"></select></label></div>
     <ol class="notes" id="dx-sym-out"></ol>
   </div>
@@ -2941,6 +2978,30 @@ $("lg-copy").addEventListener("click",()=>{const q=t=>'"'+String(t).replace(/"/g
   const done=()=>{$("lg-copy").textContent="Copied";setTimeout(()=>$("lg-copy").textContent="Copy as CSV",1500)};
   if(navigator.clipboard)navigator.clipboard.writeText(csv).then(done,()=>prompt("Copy this CSV:",csv));else prompt("Copy this CSV:",csv)});
 renderLg();
+// ----- motor nameplate log -----
+let NPLOG=[];const NPKEY="elec-dx-nameplates";
+try{NPLOG=JSON.parse(localStorage.getItem(NPKEY)||"[]");if(!Array.isArray(NPLOG))NPLOG=[]}catch(e){NPLOG=[]}
+const NPF=[["id","np-id"],["loc","np-loc"],["mfr","np-mfr"],["mod","np-mod"],["fr","np-fr"],["hp","np-hp"],["ph","np-ph"],["v","np-v"],["fla","np-fla"],["rpm","np-rpm"],["hz","np-hz"],["sf","np-sf"],["code","np-code"],["ins","np-ins"],["enc","np-enc"],["eff","np-eff"],["pf","np-pf"],["n","np-n"]];
+DX_CODE.forEach(c=>$("np-code").add(new Option(c[0],c[0])));
+function npSave(){try{localStorage.setItem(NPKEY,JSON.stringify(NPLOG))}catch(e){}}
+function renderNp(){
+  $("np-rows").innerHTML=NPLOG.map((m,i)=>{const sub=[m.mfr,m.mod,m.fr,m.loc,m.enc,m.ins&&"Ins "+m.ins,m.code&&"Code "+m.code,m.hz!=="60"&&m.hz+" Hz",m.ph==="1"&&"1φ",m.sf&&"SF "+m.sf,m.eff&&m.eff+"% eff",m.pf&&"PF "+m.pf,m.n].filter(Boolean).map(lgEsc).join(" · ");
+    return`<tr><td>${lgEsc(m.id||"—")}${sub?`<br><small>${sub}</small>`:""}</td><td>${lgEsc(m.hp||"—")}</td><td>${lgEsc(m.v||"—")}</td><td>${lgEsc(m.fla||"—")}</td><td>${lgEsc(m.rpm||"—")}</td><td><button class="btn" data-npuse="${i}" type="button">Use</button> <button class="btn" data-npdel="${i}" type="button">✕</button></td></tr>`}).join("")||`<tr><td colspan="6">No motors saved yet.</td></tr>`;
+}
+$("np-add").addEventListener("click",()=>{const m={};NPF.forEach(([k,id])=>m[k]=$(id).value.trim());if(!m.id&&!m.hp&&!m.fla)return;
+  NPLOG.push(m);npSave();NPF.forEach(([k,id])=>{if(["id","loc","mod","fla","rpm","hp","n","eff","pf","enc","fr","mfr"].includes(k))$(id).value=""});renderNp()});
+$("np-rows").addEventListener("click",e=>{const d=e.target.dataset.npdel,u=e.target.dataset.npuse;
+  if(d!=null){NPLOG.splice(+d,1);npSave();renderNp()}
+  if(u!=null){const m=NPLOG[+u],set=(id,x)=>{if(x!==""&&x!=null)$(id).value=x};
+    set("sc-hp",m.hp);set("sc-v",m.v);set("sc-fla",m.fla);set("dx-fla",m.fla);set("dx-sf",m.sf);set("dx-ph2",m.ph);set("lg-id",m.id);set("lg-v",m.v);set("dx-ir",m.v);
+    const ci=DX_CODE.findIndex(c=>c[0]===m.code);if(ci>=0)$("sc-code").value=ci;
+    $("sc-hp").dispatchEvent(new Event("input",{bubbles:true}))}});
+$("np-clear").addEventListener("click",()=>{if(NPLOG.length&&confirm("Delete every saved nameplate on this device?")){NPLOG=[];npSave();renderNp()}});
+$("np-copy").addEventListener("click",()=>{const q=t=>'"'+String(t).replace(/"/g,'""')+'"';
+  const csv=[NPF.map(f=>f[0]).join(",")].concat(NPLOG.map(m=>NPF.map(f=>q(m[f[0]]||"")).join(","))).join("\n");
+  const done=()=>{$("np-copy").textContent="Copied";setTimeout(()=>$("np-copy").textContent="Copy as CSV",1500)};
+  if(navigator.clipboard)navigator.clipboard.writeText(csv).then(done,()=>prompt("Copy this CSV:",csv));else prompt("Copy this CSV:",csv)});
+renderNp();
 const all=()=>{dxCalc();gec();bj();egc();rod();par2();genLoad();genOut();genGround();motorCalc();loadCalc();xfCalc();sbCalc();vdTab();evCalc();cfCalc();bxCalc();pbCalc();pvCalc();wcCalc();pieCalc();waCalc();clCalc();ccCalc(false);spCalc();mcCalc()};
 document.querySelectorAll("select,input").forEach(e=>e.addEventListener("input",all));
 $("tool").addEventListener("change",e=>{const b=document.querySelector(`nav button[data-p="${e.target.value}"]`);if(b){b.click();window.scrollTo(0,0)}});
