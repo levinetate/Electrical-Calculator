@@ -135,6 +135,12 @@ select,input{font:500 1.05rem var(--body);padding:10px;border:1px solid var(--li
 .notes{margin:0;padding-left:18px;color:var(--muted);font-size:.9rem;display:grid;gap:4px}
 .flag{background:var(--warn-bg);color:var(--ink);border-left:4px solid var(--warn);padding:10px 12px;border-radius:6px;font-size:.92rem}
 .flag[hidden]{display:none}
+.ck{display:flex;align-items:center;gap:8px;font-size:.92rem;font-weight:400;text-transform:none;letter-spacing:0;color:var(--ink)}
+.ck input[type=checkbox]{width:auto;flex:none}
+textarea{font:500 1rem var(--body);padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);width:100%;min-height:64px;resize:vertical}
+.ckt td input,.ckt td select{min-width:68px}.ckt td input[type=text]{min-width:120px}
+.ckg,.ckg>div{display:grid;gap:6px;min-width:0}.ckg>*{min-width:0}
+
 footer{color:var(--muted);font-size:.82rem}
 @media (max-width:480px){nav button{font-size:.8rem;letter-spacing:.02em;padding:9px 2px}h1{font-size:1.8rem}}
 </style>
@@ -177,6 +183,9 @@ footer{color:var(--muted);font-size:.82rem}
       <option value="p-bx">Box sizing</option>
       <option value="p-wc">Wire &amp; phase colors</option>
     </optgroup>
+    <optgroup label="Troubleshooting">
+      <option value="p-dx">Electrical diagnostics</option>
+    </optgroup>
   </select>
 </label>
 
@@ -199,6 +208,7 @@ footer{color:var(--muted);font-size:.82rem}
   <button role="tab" id="t-wc" aria-selected="false" data-p="p-wc">Colors</button>
   <button role="tab" id="t-cc" aria-selected="false" data-p="p-cc">Construction</button>
   <button role="tab" id="t-pie" aria-selected="false" data-p="p-pie">PIE</button>
+  <button role="tab" id="t-dx" aria-selected="false" data-p="p-dx">Diagnostics</button>
   <button role="tab" id="t-wa" aria-selected="false" data-p="p-wa">Watts/Amps</button>
 </nav>
 
@@ -1078,6 +1088,238 @@ footer{color:var(--muted);font-size:.82rem}
       <li>One cord-and-plug load can't exceed 80% of a 15 or 20 A circuit's rating (210.21(B)(2)). Fixed-in-place equipment can't exceed 50% when lights or receptacles share the circuit (210.23(A)(2)).</li>
     </ul>
   </div>
+</section>
+
+<!-- Diagnostics -->
+<section class="panel" id="p-dx" role="tabpanel" hidden>
+  <div><h2>Electrical Diagnostics</h2><div class="ref">Meter readings → what they mean · ANSI C84.1 · NEMA MG1 · IEEE 43 · 210.19 Info. Note 4 · 215.2 Info. Note 2</div></div>
+
+  <div class="block" style="border-top:0;padding-top:0">
+    <h3>A · Supply voltage &amp; unbalance</h3>
+    <div class="fields">
+      <label>System<select id="dx-ph"><option value="1">Single-phase / one reading</option><option value="3" selected>Three-phase (L-L readings)</option></select></label>
+      <label>Nominal voltage<select id="dx-vn"><option>120</option><option>208</option><option>240</option><option>277</option><option selected>480</option><option>600</option></select></label>
+      <label>Reading 1 (V)<input id="dx-v1" type="number" min="0" step="any" value="477" inputmode="decimal"></label>
+      <label class="dx-3">Reading 2 (V)<input id="dx-v2" type="number" min="0" step="any" value="482" inputmode="decimal"></label>
+      <label class="dx-3">Reading 3 (V)<input id="dx-v3" type="number" min="0" step="any" value="468" inputmode="decimal"></label>
+    </div>
+    <div class="result" id="dx-a-out"></div>
+    <div class="flag" id="dx-a-flag" hidden></div>
+    <pre class="calc" id="dx-a-c"></pre>
+  </div>
+
+  <div class="block">
+    <h3>B · Motor / load current &amp; unbalance</h3>
+    <div class="fields">
+      <label>System<select id="dx-ph2"><option value="1">Single-phase</option><option value="3" selected>Three-phase</option></select></label>
+      <label>Nameplate FLA (A)<input id="dx-fla" type="number" min="0" step="any" value="34" inputmode="decimal"></label>
+      <label>Service factor<input id="dx-sf" type="number" min="1" max="1.5" step="0.05" value="1.15" inputmode="decimal"></label>
+      <label>Line 1 (A)<input id="dx-i1" type="number" min="0" step="any" value="31" inputmode="decimal"></label>
+      <label class="dx-3b">Line 2 (A)<input id="dx-i2" type="number" min="0" step="any" value="35" inputmode="decimal"></label>
+      <label class="dx-3b">Line 3 (A)<input id="dx-i3" type="number" min="0" step="any" value="38" inputmode="decimal"></label>
+    </div>
+    <div class="result" id="dx-b-out"></div>
+    <div class="flag" id="dx-b-flag" hidden></div>
+    <pre class="calc" id="dx-b-c"></pre>
+  </div>
+
+  <div class="block">
+    <h3>C · Insulation resistance (megger)</h3>
+    <div class="fields">
+      <label>Testing<select id="dx-it"><option value="w" selected>Motor / generator winding</option><option value="c">Cable, wiring, switchgear</option></select></label>
+      <label>Rated voltage (V)<input id="dx-ir" type="number" min="1" step="any" value="480" inputmode="decimal"></label>
+      <label>1-minute reading (MΩ)<input id="dx-r1" type="number" min="0" step="any" value="120" inputmode="decimal"></label>
+      <label class="dx-pi">10-minute reading (MΩ)<input id="dx-r10" type="number" min="0" step="any" value="300" inputmode="decimal"></label>
+      <label>Winding / cable temp (°F)<input id="dx-it-f" type="number" step="any" value="85" inputmode="decimal"></label>
+    </div>
+    <div class="result" id="dx-c-out"></div>
+    <div class="flag" id="dx-c-flag" hidden></div>
+    <pre class="calc" id="dx-c-c"></pre>
+  </div>
+
+  <div class="block">
+    <h3>D · Loaded voltage drop (hunting a bad connection)</h3>
+    <div class="fields">
+      <label>Circuit<select id="dx-dsys"><option value="120|1" selected>120 V 1φ</option><option value="240|1">240 V 1φ</option><option value="208|3">208 V 3φ</option><option value="480|3">480 V 3φ</option></select></label>
+      <label>Voltage, load OFF (V)<input id="dx-vnl" type="number" min="0" step="any" value="121.0" inputmode="decimal"></label>
+      <label>Voltage, load ON (V)<input id="dx-vl" type="number" min="0" step="any" value="115.2" inputmode="decimal"></label>
+      <label>Load current (A)<input id="dx-di" type="number" min="0" step="any" value="12" inputmode="decimal"></label>
+      <label>One-way length (ft)<input id="dx-dl" type="number" min="0" step="any" value="60" inputmode="decimal"></label>
+      <label>Wire size<select id="dx-dsz"></select></label>
+      <label>Material<select id="dx-dmat"><option value="cu" selected>Copper</option><option value="al">Aluminum</option></select></label>
+    </div>
+    <div class="result" id="dx-d-out"></div>
+    <div class="flag" id="dx-d-flag" hidden></div>
+    <pre class="calc" id="dx-d-c"></pre>
+  </div>
+
+  <div class="block">
+    <h3>E · Heating element check (power off, element isolated)</h3>
+    <div class="fields">
+      <label>Nameplate watts<input id="dx-ew" type="number" min="0" step="any" value="4500" inputmode="decimal"></label>
+      <label>Nameplate volts<input id="dx-ev" type="number" min="0" step="any" value="240" inputmode="decimal"></label>
+      <label>Measured ohms<input id="dx-eo" type="number" min="0" step="any" value="12.9" inputmode="decimal"></label>
+    </div>
+    <div class="result" id="dx-e-out"></div>
+    <div class="flag" id="dx-e-flag" hidden></div>
+    <pre class="calc" id="dx-e-c"></pre>
+  </div>
+
+  <div class="block">
+    <h3>F · Three-phase motor winding resistance</h3>
+    <div class="fields">
+      <label>T1–T2 (&Omega;)<input id="dx-w1" type="number" min="0" step="any" value="0.512" inputmode="decimal"></label>
+      <label>T2–T3 (&Omega;)<input id="dx-w2" type="number" min="0" step="any" value="0.515" inputmode="decimal"></label>
+      <label>T1–T3 (&Omega;)<input id="dx-w3" type="number" min="0" step="any" value="0.531" inputmode="decimal"></label>
+      <label>Winding temp now (&deg;F)<input id="dx-wt" type="number" step="any" value="80" inputmode="decimal"></label>
+      <label>Baseline average (&Omega;, optional)<input id="dx-wb" type="number" min="0" step="any" value="0" inputmode="decimal"></label>
+      <label>Baseline temp (&deg;F)<input id="dx-wbt" type="number" step="any" value="75" inputmode="decimal"></label>
+    </div>
+    <div class="result" id="dx-w-out"></div>
+    <div class="flag" id="dx-w-flag" hidden></div>
+    <pre class="calc" id="dx-w-c"></pre>
+  </div>
+
+  <div class="block">
+    <h3>G · Motor insulation test log (winding to ground)</h3>
+    <div class="fields">
+      <label>Motor tag / name<input id="lg-id" type="text" value="" placeholder="e.g. AHU-3 supply fan" autocomplete="off"></label>
+      <label>Date<input id="lg-date" type="date"></label>
+      <label>Rated voltage (V)<input id="lg-v" type="number" min="1" step="any" value="480" inputmode="decimal"></label>
+      <label>Tester voltage<select id="lg-tv"><option>500</option><option selected>1000</option><option>2500</option><option>5000</option></select></label>
+      <label>1-minute (M&Omega;)<input id="lg-r1" type="number" min="0" step="any" value="" inputmode="decimal"></label>
+      <label>10-minute (M&Omega;)<input id="lg-r10" type="number" min="0" step="any" value="" inputmode="decimal"></label>
+      <label>Winding temp (&deg;F)<input id="lg-t" type="number" step="any" value="77" inputmode="decimal"></label>
+      <label>Notes<input id="lg-n" type="text" value="" placeholder="optional" autocomplete="off"></label>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" id="lg-add" type="button">Add to log</button>
+      <button class="btn" id="lg-copy" type="button">Copy as CSV</button>
+      <button class="btn" id="lg-clear" type="button">Clear log</button>
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>Date</th><th>Motor</th><th>1 min</th><th>At 40 &deg;C</th><th>PI</th><th>Status</th><th></th></tr></thead>
+      <tbody id="lg-rows"></tbody>
+    </table></div>
+    <div class="flag" id="lg-flag" hidden></div>
+    <ul class="notes">
+      <li>Test with the motor locked out and the T1, T2, T3 leads tied together and disconnected from the starter/drive, measuring to the frame. Discharge the winding after each test.</li>
+      <li>Readings are corrected to 40 &deg;C, with the minimum from IEEE 43 (rated kV + 1 M&Omega;) and PI &ge; 2.0. A trend matters more than one number: a drop of half or more between tests is a warning.</li>
+      <li>The log is kept only on this device (browser/app storage). Use Copy as CSV to back it up.</li>
+    </ul>
+  </div>
+
+  <div class="block">
+    <h3>H · Motor starting current check</h3>
+    <div class="fields">
+      <label>Horsepower<input id="sc-hp" type="number" min="0" step="any" value="40" inputmode="decimal"></label>
+      <label>Voltage (L-L)<input id="sc-v" type="number" min="1" step="any" value="460" inputmode="decimal"></label>
+      <label>Nameplate FLA (A)<input id="sc-fla" type="number" min="0" step="any" value="52" inputmode="decimal"></label>
+      <label>NEMA code letter<select id="sc-code"></select></label>
+      <label>Nameplate locked-rotor amps (0 = use code letter)<input id="sc-lra" type="number" min="0" step="any" value="0" inputmode="decimal"></label>
+      <label>Starter<select id="sc-st"><option value="1" selected>Across-the-line (full voltage)</option><option value="0.33">Wye-delta (about 1/3)</option><option value="0.42">Autotransformer, 65% tap (0.65&sup2;)</option><option value="0.25">Autotransformer, 50% tap (0.50&sup2;)</option><option value="0">Soft starter / VFD (skip LRA compare)</option></select></label>
+      <label>Measured starting peak (A)<input id="sc-ipk" type="number" min="0" step="any" value="330" inputmode="decimal"></label>
+      <label>Time to reach speed (s)<input id="sc-t" type="number" min="0" step="any" value="4" inputmode="decimal"></label>
+      <label>Voltage before start (V)<input id="sc-vb" type="number" min="0" step="any" value="472" inputmode="decimal"></label>
+      <label>Lowest voltage during start (V)<input id="sc-va" type="number" min="0" step="any" value="431" inputmode="decimal"></label>
+      <label>Overload relay trip class<select id="sc-cls"><option value="10">Class 10</option><option value="20" selected>Class 20</option><option value="30">Class 30</option></select></label>
+    </div>
+    <div class="result" id="sc-out"></div>
+    <div class="flag" id="sc-flag" hidden></div>
+    <pre class="calc" id="sc-c"></pre>
+    <ul class="notes">
+      <li>Code letters are the NEMA MG1 locked-rotor kVA per HP ranges on the nameplate. Use the nameplate LRA when it is shown.</li>
+      <li>Read the starting peak with a clamp meter that has an inrush/peak-hold mode. The first half-cycle can be higher than the value the meter averages.</li>
+      <li>Branch-circuit short-circuit protection for motors is sized from 430.52 (inverse-time breakers up to 250% of FLC, up to 400% if that will not carry the start), not from the starting current. Use the Motors calculator.</li>
+    </ul>
+  </div>
+
+  <div class="block">
+    <h3>I · Motor nameplate data log</h3>
+    <div class="fields">
+      <label>Tag / name<input id="np-id" type="text" placeholder="e.g. AHU-3 supply fan" autocomplete="off"></label>
+      <label>Location<input id="np-loc" type="text" autocomplete="off"></label>
+      <label>Manufacturer<input id="np-mfr" type="text" autocomplete="off"></label>
+      <label>Model / serial<input id="np-mod" type="text" autocomplete="off"></label>
+      <label>Frame<input id="np-fr" type="text" placeholder="e.g. 324T" autocomplete="off"></label>
+      <label>Horsepower<input id="np-hp" type="number" min="0" step="any" inputmode="decimal"></label>
+      <label>Phase<select id="np-ph"><option value="3" selected>3-phase</option><option value="1">Single-phase</option></select></label>
+      <label>Voltage<input id="np-v" type="number" min="0" step="any" value="460" inputmode="decimal"></label>
+      <label>FLA (A)<input id="np-fla" type="number" min="0" step="any" inputmode="decimal"></label>
+      <label>RPM<input id="np-rpm" type="number" min="0" step="any" inputmode="decimal"></label>
+      <label>Hz<select id="np-hz"><option selected>60</option><option>50</option></select></label>
+      <label>Service factor<input id="np-sf" type="number" min="1" step="0.05" value="1.15" inputmode="decimal"></label>
+      <label>Code letter<select id="np-code"><option value="">—</option></select></label>
+      <label>Insulation class<select id="np-ins"><option value="">—</option><option>A</option><option>B</option><option>F</option><option>H</option></select></label>
+      <label>Enclosure<input id="np-enc" type="text" placeholder="ODP, TEFC…" autocomplete="off"></label>
+      <label>Efficiency (%)<input id="np-eff" type="number" min="0" max="100" step="any" inputmode="decimal"></label>
+      <label>Power factor<input id="np-pf" type="number" min="0" max="1" step="0.01" inputmode="decimal"></label>
+      <label>Notes<input id="np-n" type="text" autocomplete="off"></label>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" id="np-add" type="button">Save nameplate</button>
+      <button class="btn" id="np-copy" type="button">Copy as CSV</button>
+      <button class="btn" id="np-clear" type="button">Clear all</button>
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>Motor</th><th>HP</th><th>V</th><th>FLA</th><th>RPM</th><th></th></tr></thead>
+      <tbody id="np-rows"></tbody>
+    </table></div>
+    <ul class="notes">
+      <li>Tap Use on a saved motor to fill its HP, voltage, FLA, service factor and code letter into the current, starting-current and insulation-log sections above.</li>
+      <li>Saved only on this device (browser/app storage). Use Copy as CSV to back it up. Take a photo of the nameplate too: the nameplate wins if a typed value is wrong.</li>
+    </ul>
+  </div>
+
+  <div class="block">
+    <h3>J · Motor maintenance schedule</h3>
+    <div class="fields">
+      <label>Motor tag<input id="mt-id" type="text" list="mt-tags" placeholder="e.g. AHU-3 supply fan" autocomplete="off"><datalist id="mt-tags"></datalist></label>
+      <label>Task<select id="mt-task"></select></label>
+      <label>Every (months)<input id="mt-int" type="number" min="1" max="120" step="1" value="6" inputmode="numeric"></label>
+      <label>Last done<input id="mt-last" type="date"></label>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" id="mt-add" type="button">Add task</button>
+      <button class="btn" id="mt-copy" type="button">Copy as CSV</button>
+      <button class="btn" id="mt-clear" type="button">Clear all</button>
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>Due</th><th>Motor / task</th><th>Status</th><th></th></tr></thead>
+      <tbody id="mt-rows"></tbody>
+    </table></div>
+    <div class="flag" id="mt-flag" hidden></div>
+    <ul class="notes">
+      <li>Intervals are typical starting points only. Set them from the manufacturer's manual, run hours, environment and how critical the motor is. Re-greasing in particular depends on frame size, speed and duty.</li>
+      <li>Tap Done to set Last done to today and move the due date forward. Tasks are sorted with the most overdue first; anything due within 30 days is marked.</li>
+      <li>Saved only on this device (browser/app storage). Use Copy as CSV to back it up.</li>
+    </ul>
+  </div>
+
+  <div class="block">
+    <h3>K · Field diagnostic checklist &amp; voltage log</h3>
+    <div class="ref">NFPA 70E safety · NFPA 70B maintenance · NEC · ANSI C84.1. Entries save on this device as you type.</div>
+    <div id="ck-root" class="ckg"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" id="ck-copy" type="button">Copy report as text</button>
+      <button class="btn" id="ck-new" type="button">New checklist</button>
+    </div>
+    <ul class="notes">
+      <li>A field aid only. Follow site-specific procedures, manufacturer instructions and the applicable codes, and work only within your qualifications. Keep records over time for trending (NFPA 70B).</li>
+    </ul>
+  </div>
+
+  <div class="block">
+    <h3>L · Symptom checklist</h3>
+    <div class="fields"><label>Symptom<select id="dx-sym"></select></label></div>
+    <ol class="notes" id="dx-sym-out"></ol>
+  </div>
+
+  <ul class="notes">
+    <li>Readings only; this does not replace lockout/tagout, a live-dead-live meter check, or the arc-flash PPE your site requires. Measure on a known-good meter and verify the adopted code and the AHJ.</li>
+    <li>Voltage is screened against &plusmn;5% (ANSI C84.1 Range A) and &plusmn;10% as a field check, not a code limit.</li>
+    <li>The 3% branch / 5% feeder-plus-branch figures are recommendations (210.19(A) and 215.2(A) Informational Notes), not mandatory limits.</li>
+  </ul>
 </section>
 
 <!-- Construction calculator -->
@@ -2634,7 +2876,281 @@ document.querySelectorAll("[data-der]").forEach(el=>{el.outerHTML=derUI(el.datas
 const DERPRE={mo:["mo-c1","mo-c2","tp-c"],gen:["gn-c"],xf:["xf-c3"],sb:["mc-c1","mc-c2","sb-c"],ev:["ev-c1","ev-c2"],ld:["ld-c"]};
 function wrapDer(fn,k){return function(){DER=derOf(k);try{return fn.apply(this,arguments)}finally{const D=DER;DER=null;if(D&&D.on)(DERPRE[k]||[]).forEach(id=>{const e=$(id);if(e&&e.textContent)e.textContent+=`\n\nDerating applied to all conductor sizes above: ${D.txt}`})}}}
 motorCalc=wrapDer(motorCalc,"mo");genOut=wrapDer(genOut,"gen");xfCalc=wrapDer(xfCalc,"xf");sbCalc=wrapDer(sbCalc,"sb");evCalc=wrapDer(evCalc,"ev");loadCalc=wrapDer(loadCalc,"ld");
-const all=()=>{gec();bj();egc();rod();par2();genLoad();genOut();genGround();motorCalc();loadCalc();xfCalc();sbCalc();vdTab();evCalc();cfCalc();bxCalc();pbCalc();pvCalc();wcCalc();pieCalc();waCalc();clCalc();ccCalc(false);spCalc();mcCalc()};
+// ===== Diagnostics =====
+const DX_SYM=[
+ ["Breaker trips instantly on reset",["Disconnect all loads and reset: still trips = fault in the wiring or breaker, not the load.","Megger or ohm each conductor to ground and to each other (Section C). Look for pinched or nail-struck cable.","Neutral touching ground or crossed neutrals on a shared/multiwire circuit trip AFCI/GFCI breakers.","Try a known-good breaker of the same type (replace only with the listed type)."]],
+ ["Breaker trips after running a while",["Clamp the current (Section B). Compare it to the breaker rating; continuous loads may only use 80% (210.20(A)).","Check for a hot breaker or loose lug: thermal scan or temperature, and re-torque to the marked value.","Motors and compressors: high amps from low voltage, bad bearings or a failing capacitor (Sections A, B).","Heat build-up: crowded conduit, high ambient or buried cable."]],
+ ["Lights dim, flicker or surge",["Loose neutral or splice at the panel, meter base or a device: measure voltage with the load on and off (Section D).","Voltage drops when a large load starts: compare the drop to 3%/5%, and check the service conductors and connections.","On 3-wire 120/240 V service, one leg high and one low means an open or loose service neutral. Shut loads off and fix it quickly: the high leg can burn out equipment.","Dimmer incompatible with LED lamps."]],
+ ["Half the circuits / lights out (120/240 V)",["Measure L1-N and L2-N at the main: unequal voltages mean an open neutral.","Check the neutral lug and bus, the service neutral and the meter socket jaws.","On a multiwire branch circuit, an open shared neutral makes the two legs act in series: voltage swings from low to high depending on the loads."]],
+ ["Receptacle or switch is hot / discolored",["Shut off and inspect for burned insulation or a loose terminal. Back-stabbed connections are a common failure.","Measure drop through the device under load (Section D). More than a few tenths of a volt across one device means a bad connection.","Check that the device rating suits the load and that the wire size suits the breaker (240.4(D))."]],
+ ["GFCI or AFCI keeps tripping",["Unplug everything downstream and reset. If it holds, plug loads back in one at a time.","Neutral shared between circuits, or neutral-to-ground contact on the load side.","Ground leakage: megger the circuit with devices disconnected (Section C). Moisture in outdoor or damp boxes is the most common cause.","Some older motors and heaters leak enough to trip a GFCI; check the leakage current."]],
+ ["Tingle or shock on metal parts",["Treat as unsafe. Isolate the equipment, then check for voltage from the frame to a known ground and to the neutral.","Check the EGC continuity back to the panel, and the neutral-to-ground bond (only at the service or separately derived system, 250.24, 250.30).","Open neutral on the circuit can energize the metal parts of grounded appliances.","Check for reversed polarity and for damaged cord or element insulation (Sections C and E)."]],
+ ["Three-phase motor hot, noisy or humming",["Measure all three line voltages (Section A) and currents (Section B): single-phasing shows one line near zero and the other two high.","Check for voltage unbalance above 1% (NEMA MG1 says derate) and fuses, contactor contacts and overload relays for an open phase.","Check winding insulation resistance and PI (Section C) and winding resistance (Section F).","Check bearings, coupling alignment and the cooling airflow."]],
+ ["Motor draws more than nameplate",["High or low voltage (Section A); motors draw more amps at low voltage.","Mechanical load: jam, wrong belt tension, fouled pump or fan, bad bearing.","Compare against nameplate FLA and the service factor limit (Section B).","Check power factor correction capacitors and VFD output settings."]],
+ ["Heater or oven does not heat",["Confirm voltage at the element terminals with power on, then power off and ohm the element (Section E).","Test the thermostat, high-limit and contactor or relay.","Open element reads infinite ohms; shorted-turn or partial failure reads low."]],
+ ["Equipment dead, no power",["Check the breaker, since a tripped breaker can look 'on' in the middle position.","Check for voltage at the panel, the disconnect, the load terminals: work toward the load until the voltage disappears.","Look for tripped GFCIs upstream, blown fuses, and loose neutral or hot at splice points.","Check the control circuit separately: transformer fuse, E-stop, overload contacts."]]
+];
+DX_SYM.forEach((s,i)=>$("dx-sym").add(new Option(s[0],i)));
+SIZES.forEach(([s])=>$("dx-dsz").add(new Option(label(s),s)));$("dx-dsz").value="12";
+const DX_CODE=[["A",0,3.14],["B",3.15,3.54],["C",3.55,3.99],["D",4,4.49],["E",4.5,4.99],["F",5,5.59],["G",5.6,6.29],["H",6.3,7.09],["J",7.1,7.99],["K",8,8.99],["L",9,9.99],["M",10,11.19],["N",11.2,12.49],["P",12.5,13.99],["R",14,15.99],["S",16,17.99],["T",18,19.99],["U",20,22.39],["V",22.4,null]];
+DX_CODE.forEach((c,i)=>$("sc-code").add(new Option(c[0]+" ("+c[1]+(c[2]==null?"+":"–"+c[2])+" kVA/HP)",i)));$("sc-code").value=7;
+function dxFlags(id,arr){const f=$(id);f.hidden=!arr.length;f.innerHTML=arr.join("<br>")}
+function dxCalc(){
+  // A · voltage
+  {const Vn=+$("dx-vn").value,three=$("dx-ph").value==="3";
+   document.querySelectorAll(".dx-3").forEach(e=>e.hidden=!three);
+   const vals=three?[v("dx-v1"),v("dx-v2"),v("dx-v3")]:[v("dx-v1")];
+   const avg=vals.reduce((a,b)=>a+b,0)/vals.length, dev=(avg-Vn)/Vn*100;
+   const mx=Math.max(...vals.map(x=>Math.abs(x-avg))), unb=three&&avg?mx/avg*100:0, fl=[];
+   if(vals.some(x=>x===0))fl.push("⚠ A reading of 0 V: open phase, open fuse/breaker pole or a bad meter lead.");
+   if(Math.abs(dev)>10)fl.push(`⚠ Average is ${dev.toFixed(1)}% from nominal: outside ±10%. Check the transformer tap, utility voltage and drop in the feeder.`);
+   else if(Math.abs(dev)>5)fl.push(`⚠ Average is ${dev.toFixed(1)}% from nominal: outside ±5% (ANSI C84.1 Range A).`);
+   if(three&&unb>5)fl.push(`⚠ Unbalance ${unb.toFixed(2)}%: above 5%; NEMA MG1 says do not run motors on this supply. Find the cause first.`);
+   else if(three&&unb>1)fl.push(`⚠ Unbalance ${unb.toFixed(2)}%: above 1%; motors must be derated (NEMA MG1 14.36). Expect roughly 6–10× that in current unbalance.`);
+   $("dx-a-out").innerHTML=plate("Average",avg.toFixed(1),"V",true)+plate("From nominal",(dev>=0?"+":"")+dev.toFixed(1),"%")+(three?plate("Unbalance",unb.toFixed(2),"%"):"");
+   $("dx-a-c").textContent=three?`Average = (${vals.join(" + ")}) ÷ 3 = ${avg.toFixed(1)} V\nFrom nominal = (${avg.toFixed(1)} − ${Vn}) ÷ ${Vn} = ${dev.toFixed(2)}%\nUnbalance = max deviation from average ÷ average = ${mx.toFixed(1)} ÷ ${avg.toFixed(1)} = ${unb.toFixed(2)}% (NEMA MG1 14.35)`:`From nominal = (${avg.toFixed(1)} − ${Vn}) ÷ ${Vn} = ${dev.toFixed(2)}%`;
+   dxFlags("dx-a-flag",fl)}
+  // B · current
+  {const three=$("dx-ph2").value==="3", FLA=v("dx-fla"), sf=Math.max(1,v("dx-sf")||1);
+   document.querySelectorAll(".dx-3b").forEach(e=>e.hidden=!three);
+   const vals=three?[v("dx-i1"),v("dx-i2"),v("dx-i3")]:[v("dx-i1")];
+   const avg=vals.reduce((a,b)=>a+b,0)/vals.length, mx=Math.max(...vals.map(x=>Math.abs(x-avg)));
+   const unb=three&&avg?mx/avg*100:0, pct=FLA?avg/FLA*100:0, lim=FLA*sf, fl=[];
+   if(three&&vals.some(x=>x===0)&&vals.some(x=>x>0))fl.push("⚠ One line reads 0 A: single-phasing (open fuse, contact, connection or winding).");
+   if(FLA&&Math.max(...vals)>lim)fl.push(`⚠ A line is above FLA × SF (${lim.toFixed(1)} A): overload. Check voltage (Section A), mechanical load and overload relay setting (430.32: 115% for SF ≥ 1.15).`);
+   else if(FLA&&Math.max(...vals)>FLA)fl.push(`Highest line is above nameplate FLA but inside the service factor (${lim.toFixed(1)} A). It runs hot continuously.`);
+   if(three&&unb>10)fl.push(`⚠ Current unbalance ${unb.toFixed(1)}%: above 10%. Check voltage unbalance, loose connections, and a shorted winding.`);
+   else if(three&&unb>5)fl.push(`Current unbalance ${unb.toFixed(1)}%: moderate. Compare with voltage unbalance (Section A): current unbalance about 6–10× voltage unbalance is normal.`);
+   if(FLA&&pct<40&&avg>0)fl.push(`Motor is lightly loaded (${pct.toFixed(0)}% of FLA): low power factor and wasted energy; check the driven load.`);
+   $("dx-b-out").innerHTML=plate("Average",avg.toFixed(1),"A",true)+(FLA?plate("% of FLA",pct.toFixed(0),"%"):"")+(three?plate("Unbalance",unb.toFixed(1),"%"):"")+(FLA?plate("FLA × SF",lim.toFixed(1),"A max"):"");
+   $("dx-b-c").textContent=`Average = (${vals.join(" + ")}) ÷ ${vals.length} = ${avg.toFixed(2)} A`+(FLA?`\n% of FLA = ${avg.toFixed(2)} ÷ ${FLA} = ${pct.toFixed(0)}%\nLimit = ${FLA} A × ${sf} SF = ${lim.toFixed(1)} A`:"")+(three?`\nUnbalance = ${mx.toFixed(2)} ÷ ${avg.toFixed(2)} = ${unb.toFixed(1)}%`:"");
+   dxFlags("dx-b-flag",fl)}
+  // C · insulation resistance
+  {const w=$("dx-it").value==="w", Vr=Math.max(1,v("dx-ir")), r1=v("dx-r1"), r10=v("dx-r10"), F=parseFloat($("dx-it-f").value);
+   document.querySelectorAll(".dx-pi").forEach(e=>e.hidden=!w);
+   const Tc=((isNaN(F)?77:F)-32)/1.8, kt=Math.pow(.5,(40-Tc)/10), r40=r1*kt, fl=[];
+   let test,min,src;
+   if(w){test=Vr<1000?"500 V":Vr<=2500?"500–1000 V":Vr<=5000?"1000–2500 V":"2500–5000 V";min=Math.max(1,Vr/1000+1);src="IEEE 43: min = rated kV + 1 MΩ (at least 1 MΩ), corrected to 40 °C"}
+   else{[test,min]=Vr<=300?["250 V",25]:Vr<=600?["500 V",100]:Vr<=1000?["1000 V",500]:Vr<=5000?["2500 V",1000]:["5000 V",2000];src="typical NETA ATS acceptance value; use the manufacturer's value if different"}
+   const pi=r1?r10/r1:0, ok=r40>=min;
+   if(r1===0)fl.push("⚠ Reading of 0 MΩ: dead short to ground or between conductors.");
+   else if(!ok)fl.push(`⚠ ${r40.toFixed(1)} MΩ at 40 °C is below the ${min.toFixed(min%1?1:0)} MΩ minimum. Clean and dry the winding/cable and retest; if it stays low, the insulation is failing.`);
+   if(w&&r10>0&&pi<2)fl.push(`⚠ Polarization index ${pi.toFixed(2)} is below 2.0: moisture or contamination (IEEE 43). ${pi<1?"Below 1.0 is dangerous: do not energize.":""}`);
+   if(w&&r1>5000)fl.push("Reading above 5000 MΩ: PI can read near 1 on very good insulation; ignore PI when the 1-minute value is that high.");
+   $("dx-c-out").innerHTML=plate("At 40 °C",r40.toFixed(1),"MΩ",true)+plate("Minimum",min.toFixed(min%1?1:0),"MΩ")+plate("Test voltage",test,"")+(w&&r10?plate("PI (10÷1 min)",pi.toFixed(2),"≥ 2.0"):"");
+   $("dx-c-c").textContent=`Temp = (${isNaN(F)?77:F} − 32) ÷ 1.8 = ${Tc.toFixed(1)} °C\nKt = 0.5^((40 − ${Tc.toFixed(1)}) ÷ 10) = ${kt.toFixed(3)} (halves for every 10 °C rise)\nR40 = ${r1} MΩ × ${kt.toFixed(3)} = ${r40.toFixed(1)} MΩ\nMinimum ${min.toFixed(min%1?1:0)} MΩ: ${src}`+(w?`\nPI = ${r10} ÷ ${r1} = ${pi.toFixed(2)}`:"");
+   dxFlags("dx-c-flag",fl)}
+  // D · loaded drop
+  {const [V,ph]=$("dx-dsys").value.split("|").map(Number), vnl=v("dx-vnl"), vl=v("dx-vl"), I=v("dx-di"), L=v("dx-dl"), mat=$("dx-dmat").value, s=$("dx-dsz").value, fl=[];
+   const dv=vnl-vl, pct=vnl?dv/vnl*100:0, R=I?dv/I:0;
+   let exp=0,txt="";
+   if(L&&I&&!(mat==="al"&&s==="14")){const r=vdOf(I,L,{s,sets:1},mat,V,ph);exp=r.vd;txt=`\nExpected drop in the wire alone (${label(s)} ${mat==="al"?"Al":"Cu"}, ${L} ft, ${I} A) = ${exp.toFixed(2)} V`}
+   if(I&&dv<0)fl.push("Load-on voltage is higher than load-off: re-measure.");
+   if(pct>5)fl.push(`⚠ ${pct.toFixed(1)}% drop at the load is over 5%.`);
+   else if(pct>3)fl.push(`${pct.toFixed(1)}% is over the 3% branch-circuit recommendation (210.19(A) Info. Note 4).`);
+   if(exp&&dv>exp*1.5&&dv-exp>1)fl.push(`⚠ Measured drop (${dv.toFixed(2)} V) is well above the wire's ${exp.toFixed(2)} V: there is about ${(dv-exp).toFixed(2)} V (${(R-exp/I).toFixed(3)} Ω) of extra resistance: look for a loose lug, burnt splice, worn switch/receptacle or a bad breaker. Measure drop across each connection to find it.`);
+   $("dx-d-out").innerHTML=plate("Drop",dv.toFixed(2),"V",true)+plate("Drop %",pct.toFixed(1),"%")+plate("Loop resistance",R.toFixed(3),"Ω")+(exp?plate("Wire only",exp.toFixed(2),"V expected"):"");
+   $("dx-d-c").textContent=`Drop = ${vnl} − ${vl} = ${dv.toFixed(2)} V = ${pct.toFixed(2)}% of ${vnl} V\nLoop R = ${dv.toFixed(2)} V ÷ ${I} A = ${R.toFixed(3)} Ω`+txt;
+   dxFlags("dx-d-flag",fl)}
+  // E · heating element
+  {const W=v("dx-ew"), Ve=v("dx-ev"), R=v("dx-eo"), fl=[];
+   const exp=W?Ve*Ve/W:0, dev=exp?(R-exp)/exp*100:0, I=Ve?W/Ve:0;
+   if(R===0)fl.push("⚠ 0 Ω: shorted element or lead.");
+   else if(exp&&R>exp*5)fl.push("⚠ Reads open or very high: burnt-out element.");
+   else if(exp&&Math.abs(dev)>10)fl.push(`⚠ ${dev.toFixed(0)}% from expected: outside the usual ±10% tolerance. ${dev>0?"High: damaged or partly burnt element.":"Low: shorted turns or wrong element."}`);
+   fl.push("Also test each terminal to the element sheath/frame: it should read open (no continuity). Any reading means a grounded element.");
+   $("dx-e-out").innerHTML=plate("Expected",exp.toFixed(1),"Ω (hot)",true)+plate("Measured",R,"Ω")+plate("Deviation",(dev>=0?"+":"")+dev.toFixed(0),"%")+plate("Rated current",I.toFixed(1),"A");
+   $("dx-e-c").textContent=`R = V² ÷ W = ${Ve}² ÷ ${W} = ${exp.toFixed(2)} Ω\nI = W ÷ V = ${I.toFixed(2)} A\nDeviation = (${R} − ${exp.toFixed(2)}) ÷ ${exp.toFixed(2)} = ${dev.toFixed(1)}%\nCompare cold ohms to the rating within the usual tolerance (about ±10%).`;
+   dxFlags("dx-e-flag",fl)}
+  // F · winding resistance
+  {const R=[v("dx-w1"),v("dx-w2"),v("dx-w3")], avg=(R[0]+R[1]+R[2])/3, mx=Math.max(...R.map(x=>Math.abs(x-avg))), unb=avg?mx/avg*100:0, fl=[];
+   const tF=parseFloat($("dx-wt").value), tb=parseFloat($("dx-wbt").value), B=v("dx-wb"), T=isNaN(tF)?77:tF, Tb=isNaN(tb)?77:tb;
+   const cT=(T-32)/1.8, cb=(Tb-32)/1.8, base=B*(234.5+cT)/(234.5+cb), bdev=B&&base?(avg-base)/base*100:0;
+   if(R.some(x=>x===0))fl.push("⚠ A 0 Ω reading: shorted lead or a meter that cannot read this low. Use a milliohm/micro-ohm meter (a standard multimeter is not accurate here).");
+   else if(unb>5)fl.push(`⚠ Winding imbalance ${unb.toFixed(1)}%: above 5%. Suspect shorted turns, a loose or burnt lead connection, or an open parallel path.`);
+   else if(unb>1)fl.push(`Imbalance ${unb.toFixed(1)}%: above 1%. Re-check lead connections and meter clip contact, then compare with the baseline or the manufacturer's data.`);
+   if(B&&Math.abs(bdev)>5)fl.push(`⚠ Average is ${bdev.toFixed(1)}% from the baseline after temperature correction. ${bdev>0?"High: loose connection or damaged conductor.":"Low: shorted turns."}`);
+   $("dx-w-out").innerHTML=plate("Average",avg.toFixed(4),"Ω",true)+plate("Imbalance",unb.toFixed(1),"%")+(B?plate("vs baseline",(bdev>=0?"+":"")+bdev.toFixed(1),"% @ "+T+" °F"):"");
+   $("dx-w-c").textContent=`Average = (${R.join(" + ")}) ÷ 3 = ${avg.toFixed(4)} Ω\nImbalance = max deviation ${mx.toFixed(4)} ÷ ${avg.toFixed(4)} = ${unb.toFixed(2)}%`+(B?`\nBaseline corrected to ${T} °F (copper) = ${B} × (234.5 + ${cT.toFixed(1)}) ÷ (234.5 + ${cb.toFixed(1)}) = ${base.toFixed(4)} Ω\nDeviation = (${avg.toFixed(4)} − ${base.toFixed(4)}) ÷ ${base.toFixed(4)} = ${bdev.toFixed(1)}%`:"")+"\nMotor must be locked out, leads disconnected from the drive/starter, and at rest temperature.";
+   dxFlags("dx-w-flag",fl)}
+  // H · starting current
+  {const HP=v("sc-hp"), V=v("sc-v"), FLA=v("sc-fla"), LRn=v("sc-lra"), f=+$("sc-st").value, Ipk=v("sc-ipk"), ts=v("sc-t"), vb=v("sc-vb"), va=v("sc-va"), cls=+$("sc-cls").value, fl=[];
+   const [letter,lo,hi]=DX_CODE[+$("sc-code").value], k=Math.sqrt(3), cv=HP*1000/(k*V);
+   const LRlo=LRn||(V?lo*cv:0), LRhi=LRn||(hi==null?LRlo*1.15:hi*cv), eLo=LRlo*f, eHi=LRhi*f, mult=FLA?Ipk/FLA:0;
+   let txt=LRn?`LRA = ${LRn} A (nameplate)`:`LRA = HP × kVA/HP × 1000 ÷ (1.732 × V) = ${HP} × ${lo}–${hi==null?lo+"+":hi} × 1000 ÷ (1.732 × ${V}) = ${r0(LRlo)}–${r0(LRhi)} A (code ${letter})`;
+   if(f>0){txt+=`\nExpected peak = LRA × ${f} = ${r0(eLo)}–${r0(eHi)} A`;
+     if(Ipk&&Ipk>eHi*1.15)fl.push(`⚠ Measured ${r0(Ipk)} A is above the expected ${r0(eHi)} A. Check for low voltage, a jammed load, shorted turns or a bad connection feeding the starter.`);
+     else if(Ipk&&Ipk<eLo*.6)fl.push(`Measured ${r0(Ipk)} A is well under the expected ${r0(eLo)} A. Fine if the meter missed the peak; if it stays low the motor may be starting under a light load or a phase may be open.`)}
+   if(FLA&&Ipk)txt+=`\nMeasured = ${r0(Ipk)} ÷ ${FLA} FLA = ${mult.toFixed(1)}× FLA`;
+   const dip=vb?(vb-va)/vb*100:0;
+   if(vb&&va)txt+=`\nVoltage dip = (${vb} − ${va}) ÷ ${vb} = ${dip.toFixed(1)}%`;
+   if(vb&&va&&dip>15)fl.push(`⚠ Voltage dips ${dip.toFixed(1)}% at start: lights will flicker and contactors may drop out. Check the source, feeder size/length (voltage drop at starting current) and connections.`);
+   else if(vb&&va&&dip>10)fl.push(`Voltage dips ${dip.toFixed(1)}% at start: above the usual 10% guideline.`);
+   if(va&&V&&va<V*.85)fl.push("⚠ Voltage falls below 85% of rated at start: the motor may stall or fail to accelerate.");
+   if(ts&&FLA&&mult>=5.5&&ts>cls)fl.push(`⚠ ${ts} s start at about ${mult.toFixed(1)}× FLA is longer than a Class ${cls} relay's trip time at 600% (up to ${cls} s): the overload relay will probably trip on start. Check the load or use a longer class.`);
+   if(ts>0)txt+=`\nStart time ${ts} s · overload relay Class ${cls} trips within ${cls} s at 600% of its setting`;
+   if(Ipk&&ts&&Ipk>FLA*8&&ts>6)fl.push("⚠ High current for a long time: a stall or hard-starting load. Do not repeat starts; the motor limits are a few starts per hour.");
+   $("sc-out").innerHTML=plate("Expected peak",f>0?r0(eLo)+(eHi-eLo>1?"–"+r0(eHi):""):"—","A",true)+plate("Measured",r0(Ipk),"A · "+mult.toFixed(1)+"× FLA")+(vb&&va?plate("Voltage dip",dip.toFixed(1),"%"):"")+plate("Start time",ts,"s");
+   $("sc-c").textContent=txt;
+   dxFlags("sc-flag",fl)}
+  // I · symptoms
+  $("dx-sym-out").innerHTML=DX_SYM[+$("dx-sym").value][1].map(t=>`<li>${t}</li>`).join("");
+}
+// ----- insulation test log -----
+let DXLOG=[];const LGKEY="elec-dx-ir-log";
+try{DXLOG=JSON.parse(localStorage.getItem(LGKEY)||"[]");if(!Array.isArray(DXLOG))DXLOG=[]}catch(e){DXLOG=[]}
+function lgSave(){try{localStorage.setItem(LGKEY,JSON.stringify(DXLOG))}catch(e){}}
+const lgEsc=t=>String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function lgCalc(e){const Tc=((isNaN(e.t)?77:e.t)-32)/1.8, r40=e.r1*Math.pow(.5,(40-Tc)/10), min=Math.max(1,e.v/1000+1), pi=e.r1&&e.r10?e.r10/e.r1:0;
+  const bad=[];if(r40<min)bad.push("low IR");if(e.r10&&pi<2&&e.r1<=5000)bad.push("low PI");return{r40,min,pi,bad}}
+function renderLg(){
+  const rows=DXLOG.map((e,i)=>({e,i,c:lgCalc(e)})).sort((a,b)=>(a.e.d+"").localeCompare(b.e.d+"")||a.i-b.i);
+  const last={},fl=[];
+  rows.forEach(o=>{const k=o.e.id.trim().toLowerCase(),pv=last[k];o.drop=pv&&pv.c.r40>0&&o.c.r40<pv.c.r40*.5?pv:null;last[k]=o;
+    if(o.drop)fl.push(`⚠ ${lgEsc(o.e.id||"Motor")}: ${o.c.r40.toFixed(1)} MΩ on ${lgEsc(o.e.d)} is under half of ${pv.c.r40.toFixed(1)} MΩ on ${lgEsc(pv.e.d)}.`)});
+  $("lg-rows").innerHTML=rows.slice().reverse().map(o=>`<tr><td>${lgEsc(o.e.d)}</td><td>${lgEsc(o.e.id||"—")}${o.e.n?`<br><small>${lgEsc(o.e.n)}</small>`:""}</td><td>${o.e.r1}</td><td>${o.c.r40.toFixed(1)}</td><td>${o.c.pi?o.c.pi.toFixed(2):"—"}</td><td>${o.c.bad.length||o.drop?"⚠ "+o.c.bad.concat(o.drop?["dropped"]:[]).join(", "):"OK"}</td><td><button class="btn" data-lgdel="${o.i}" type="button">✕</button></td></tr>`).join("")||`<tr><td colspan="7">No tests logged yet.</td></tr>`;
+  const f=$("lg-flag");f.hidden=!fl.length;f.innerHTML=fl.join("<br>");
+}
+$("lg-date").value=new Date().toISOString().slice(0,10);
+$("lg-add").addEventListener("click",()=>{const r1=parseFloat($("lg-r1").value);if(!(r1>=0))return;
+  DXLOG.push({id:$("lg-id").value.trim(),d:$("lg-date").value||new Date().toISOString().slice(0,10),v:v("lg-v")||480,tv:+$("lg-tv").value,r1,r10:v("lg-r10"),t:parseFloat($("lg-t").value),n:$("lg-n").value.trim()});
+  lgSave();$("lg-r1").value="";$("lg-r10").value="";$("lg-n").value="";renderLg()});
+$("lg-rows").addEventListener("click",e=>{const d=e.target.dataset.lgdel;if(d!=null){DXLOG.splice(+d,1);lgSave();renderLg()}});
+$("lg-clear").addEventListener("click",()=>{if(DXLOG.length&&confirm("Delete every logged test on this device?")){DXLOG=[];lgSave();renderLg()}});
+$("lg-copy").addEventListener("click",()=>{const q=t=>'"'+String(t).replace(/"/g,'""')+'"';
+  const csv=["date,motor,rated_V,test_V,r1_MOhm,r10_MOhm,temp_F,r40_MOhm,PI,notes"].concat(DXLOG.map(e=>{const c=lgCalc(e);return[e.d,q(e.id),e.v,e.tv,e.r1,e.r10,e.t,c.r40.toFixed(2),c.pi.toFixed(2),q(e.n)].join(",")})).join("\n");
+  const done=()=>{$("lg-copy").textContent="Copied";setTimeout(()=>$("lg-copy").textContent="Copy as CSV",1500)};
+  if(navigator.clipboard)navigator.clipboard.writeText(csv).then(done,()=>prompt("Copy this CSV:",csv));else prompt("Copy this CSV:",csv)});
+renderLg();
+// ----- motor nameplate log -----
+let NPLOG=[];const NPKEY="elec-dx-nameplates";
+try{NPLOG=JSON.parse(localStorage.getItem(NPKEY)||"[]");if(!Array.isArray(NPLOG))NPLOG=[]}catch(e){NPLOG=[]}
+const NPF=[["id","np-id"],["loc","np-loc"],["mfr","np-mfr"],["mod","np-mod"],["fr","np-fr"],["hp","np-hp"],["ph","np-ph"],["v","np-v"],["fla","np-fla"],["rpm","np-rpm"],["hz","np-hz"],["sf","np-sf"],["code","np-code"],["ins","np-ins"],["enc","np-enc"],["eff","np-eff"],["pf","np-pf"],["n","np-n"]];
+DX_CODE.forEach(c=>$("np-code").add(new Option(c[0],c[0])));
+function npSave(){try{localStorage.setItem(NPKEY,JSON.stringify(NPLOG))}catch(e){}}
+function renderNp(){
+  $("np-rows").innerHTML=NPLOG.map((m,i)=>{const sub=[m.mfr,m.mod,m.fr,m.loc,m.enc,m.ins&&"Ins "+m.ins,m.code&&"Code "+m.code,m.hz!=="60"&&m.hz+" Hz",m.ph==="1"&&"1φ",m.sf&&"SF "+m.sf,m.eff&&m.eff+"% eff",m.pf&&"PF "+m.pf,m.n].filter(Boolean).map(lgEsc).join(" · ");
+    return`<tr><td>${lgEsc(m.id||"—")}${sub?`<br><small>${sub}</small>`:""}</td><td>${lgEsc(m.hp||"—")}</td><td>${lgEsc(m.v||"—")}</td><td>${lgEsc(m.fla||"—")}</td><td>${lgEsc(m.rpm||"—")}</td><td><button class="btn" data-npuse="${i}" type="button">Use</button> <button class="btn" data-npdel="${i}" type="button">✕</button></td></tr>`}).join("")||`<tr><td colspan="6">No motors saved yet.</td></tr>`;
+  if(typeof mtTags==="function")mtTags();
+}
+$("np-add").addEventListener("click",()=>{const m={};NPF.forEach(([k,id])=>m[k]=$(id).value.trim());if(!m.id&&!m.hp&&!m.fla)return;
+  NPLOG.push(m);npSave();NPF.forEach(([k,id])=>{if(["id","loc","mod","fla","rpm","hp","n","eff","pf","enc","fr","mfr"].includes(k))$(id).value=""});renderNp()});
+$("np-rows").addEventListener("click",e=>{const d=e.target.dataset.npdel,u=e.target.dataset.npuse;
+  if(d!=null){NPLOG.splice(+d,1);npSave();renderNp()}
+  if(u!=null){const m=NPLOG[+u],set=(id,x)=>{if(x!==""&&x!=null)$(id).value=x};
+    set("sc-hp",m.hp);set("sc-v",m.v);set("sc-fla",m.fla);set("dx-fla",m.fla);set("dx-sf",m.sf);set("dx-ph2",m.ph);set("lg-id",m.id);set("lg-v",m.v);set("dx-ir",m.v);
+    const ci=DX_CODE.findIndex(c=>c[0]===m.code);if(ci>=0)$("sc-code").value=ci;
+    $("sc-hp").dispatchEvent(new Event("input",{bubbles:true}))}});
+$("np-clear").addEventListener("click",()=>{if(NPLOG.length&&confirm("Delete every saved nameplate on this device?")){NPLOG=[];npSave();renderNp()}});
+$("np-copy").addEventListener("click",()=>{const q=t=>'"'+String(t).replace(/"/g,'""')+'"';
+  const csv=[NPF.map(f=>f[0]).join(",")].concat(NPLOG.map(m=>NPF.map(f=>q(m[f[0]]||"")).join(","))).join("\n");
+  const done=()=>{$("np-copy").textContent="Copied";setTimeout(()=>$("np-copy").textContent="Copy as CSV",1500)};
+  if(navigator.clipboard)navigator.clipboard.writeText(csv).then(done,()=>prompt("Copy this CSV:",csv));else prompt("Copy this CSV:",csv)});
+renderNp();
+// ----- motor maintenance schedule -----
+let MTLOG=[];const MTKEY="elec-dx-maint";
+try{MTLOG=JSON.parse(localStorage.getItem(MTKEY)||"[]");if(!Array.isArray(MTLOG))MTLOG=[]}catch(e){MTLOG=[]}
+const MT_TASKS=[["Lubricate bearings",6],["Insulation resistance / PI test",12],["Winding resistance check",12],["Vibration check",6],["Thermal scan (connections, motor)",12],["Tighten & inspect connections",12],["Clean motor / airways",6],["Check alignment, belts, coupling",6],["Check overload relay setting & starter contacts",12],["Check starting & running current",12]];
+MT_TASKS.forEach((t,i)=>$("mt-task").add(new Option(t[0],i)));$("mt-task").add(new Option("Other","x"));
+$("mt-task").addEventListener("change",()=>{const t=MT_TASKS[+$("mt-task").value];if(t)$("mt-int").value=t[1]});
+function mtTags(){$("mt-tags").innerHTML=NPLOG.map(m=>m.id).filter(Boolean).map(t=>`<option value="${lgEsc(t)}">`).join("")}
+mtTags();
+const mtToday=()=>{const d=new Date();return new Date(d.getFullYear(),d.getMonth(),d.getDate())};
+const mtParse=t=>{const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(t||"");return m?new Date(+m[1],+m[2]-1,+m[3]):null};
+const mtIso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+function mtSave(){try{localStorage.setItem(MTKEY,JSON.stringify(MTLOG))}catch(e){}}
+function mtDue(t){const l=mtParse(t.last)||mtToday();return new Date(l.getFullYear(),l.getMonth()+t.int,l.getDate())}
+function renderMt(){
+  const now=mtToday(),rows=MTLOG.map((t,i)=>{const due=mtDue(t);return{t,i,due,days:Math.round((due-now)/864e5)}}).sort((a,b)=>a.days-b.days);
+  const over=rows.filter(r=>r.days<0), soon=rows.filter(r=>r.days>=0&&r.days<=30);
+  $("mt-rows").innerHTML=rows.map(r=>`<tr><td>${mtIso(r.due)}</td><td>${lgEsc(r.t.id||"—")}<br><small>${lgEsc(r.t.task)} · every ${r.t.int} mo${r.t.last?" · last "+lgEsc(r.t.last):" · never done"}</small></td><td>${r.days<0?"⚠ overdue "+(-r.days)+" d":r.days<=30?"due in "+r.days+" d":"OK"}</td><td><button class="btn" data-mtdone="${r.i}" type="button">Done</button> <button class="btn" data-mtdel="${r.i}" type="button">✕</button></td></tr>`).join("")||`<tr><td colspan="4">No tasks scheduled yet.</td></tr>`;
+  const f=$("mt-flag"),m=[];if(over.length)m.push(`⚠ ${over.length} overdue task${over.length>1?"s":""}.`);if(soon.length)m.push(`${soon.length} due within 30 days.`);f.hidden=!m.length;f.innerHTML=m.join("<br>");
+}
+$("mt-last").value=mtIso(mtToday());
+$("mt-add").addEventListener("click",()=>{const k=$("mt-task").value,t=MT_TASKS[+k],int=Math.max(1,Math.min(120,parseInt($("mt-int").value)||6));
+  MTLOG.push({id:$("mt-id").value.trim(),task:t?t[0]:"Other",int,last:$("mt-last").value||""});mtSave();renderMt()});
+$("mt-rows").addEventListener("click",e=>{const d=e.target.dataset.mtdel,n=e.target.dataset.mtdone;
+  if(d!=null){MTLOG.splice(+d,1);mtSave();renderMt()}
+  if(n!=null){MTLOG[+n].last=mtIso(mtToday());mtSave();renderMt()}});
+$("mt-clear").addEventListener("click",()=>{if(MTLOG.length&&confirm("Delete every maintenance task on this device?")){MTLOG=[];mtSave();renderMt()}});
+$("mt-copy").addEventListener("click",()=>{const q=t=>'"'+String(t).replace(/"/g,'""')+'"';
+  const csv=["motor,task,every_months,last_done,next_due"].concat(MTLOG.map(t=>[q(t.id),q(t.task),t.int,t.last,mtIso(mtDue(t))].join(","))).join("\n");
+  const done=()=>{$("mt-copy").textContent="Copied";setTimeout(()=>$("mt-copy").textContent="Copy as CSV",1500)};
+  if(navigator.clipboard)navigator.clipboard.writeText(csv).then(done,()=>prompt("Copy this CSV:",csv));else prompt("Copy this CSV:",csv)});
+renderMt();
+// ----- field diagnostic checklist -----
+const CK_SAFE=["Job briefing completed / hazards identified","Arc flash label reviewed: incident energy & PPE category noted","Proper PPE: arc-rated clothing, gloves, face shield/hood as required","Lockout/Tagout (LOTO) applied and verified (if de-energized work)","Absence of voltage verified with rated meter (live-dead-live test)","Approach boundaries established; unqualified persons excluded","Energized work permit issued if required (diagnostic exceptions documented)"];
+const CK_VIS=["No signs of overheating, discoloration, or burn marks","No corrosion, moisture, or contamination","Connections appear tight; no loose lugs or damaged insulation","Proper labeling on panel, breakers, and conductors","Clear working space (NEC 110.26)","Grounding electrode conductor and bonding jumper intact","No open knockouts or missing covers"];
+const CK_P1=["Service entrance","Main panel","Subpanel / load"], CK_P3=["Service entrance","Main switchgear","Distribution panel","MCC / panel","Motor / load"];
+const CK_FAULT=[["Low L-N, normal L-G","Open / high-resistance neutral","Check neutral connections, voltage under load"],["One phase low or missing","Open conductor, blown fuse, utility issue","Verify upstream, phase sequence, utility report"],["Voltage unbalance > 2%","Uneven loads, poor connections, utility","Rebalance loads, torque check, utility call"],["High N-G voltage","Neutral issues or shared neutrals","Isolate and test neutrals"],["Breaker trips under load","Overload, short, ground fault, weak connection","Current measurement, IR scan, insulation test"],["Motor overheating","Voltage imbalance, single-phasing, overload","Measure all phases voltage & current"]];
+const ckT=(id,ph,cls)=>`<input type="text" id="${id}" class="ckf" placeholder="${ph||""}" autocomplete="off"${cls?` style="${cls}"`:""}>`;
+const ckN=id=>`<input type="number" id="${id}" class="ckf" step="any" inputmode="decimal">`;
+const ckC=(id,l)=>`<label class="ck"><input type="checkbox" id="${id}" class="ckf"> ${l}</label>`;
+const ckS=(id,o)=>`<select id="${id}" class="ckf">${o.map(x=>`<option>${x}</option>`).join("")}</select>`;
+const ckH=t=>`<h3 style="margin-top:10px">${t}</h3>`;
+const CK_IDS=[];
+$("ck-root").innerHTML=
+ `<div class="fields"><label>Job / site${ckT("ck-site")}</label><label>Date<input type="date" id="ck-date" class="ckf"></label><label>Technician${ckT("ck-tech")}</label><label>WO #${ckT("ck-wo")}</label><label>Equipment ID / location${ckT("ck-eq")}</label><label>System${ckS("ck-sys",["Single-phase","Three-phase"])}</label><label>Nominal voltage (V)${ckN("ck-nom")}</label><label>Load condition${ckS("ck-load",["Under load","No-load"])}</label></div>`+
+ ckH("1 · Safety checks (NFPA 70E)")+CK_SAFE.map((t,i)=>ckC("ck-s"+i,t)).join("")+
+ ckH("2 · Visual inspection")+CK_VIS.map((t,i)=>ckC("ck-v"+i,t)).join("")+
+ `<div id="ck-1ph">`+ckH("3 · Voltage log: single-phase")+`<div class="ref">120/240 V: ANSI C84.1 Range A service about 114–126 V (120) / 228–252 V (240); utilization slightly lower. Neutral-ground ideally under 2 V. Drop vs service is each point's L-N compared with the service entrance L-N (target ≤ 3% branch, ≤ 5% total).</div><div class="tw ckt"><table><thead><tr><th>Point</th><th>L-N (V)</th><th>L-G (V)</th><th>N-G (V)</th><th>Drop vs service %</th><th>Status</th><th>Notes</th></tr></thead><tbody>`+CK_P1.map((n,i)=>`<tr><td>${n}</td><td>${ckN("ck-a"+i)}</td><td>${ckN("ck-b"+i)}</td><td>${ckN("ck-c"+i)}</td><td id="ck-dv${i}">—</td><td id="ck-st1-${i}">—</td><td>${ckT("ck-n1"+i)}</td></tr>`).join("")+`</tbody></table></div>
+ <div class="fields"><label>No-load V${ckN("ck-nl")}</label><label>Under-load V${ckN("ck-ul")}</label><label>Drop %<input id="ck-dp" readonly tabindex="-1"></label></div><div class="flag" id="ck-dflag" hidden></div></div>`+
+ `<div id="ck-3ph">`+ckH("4 · Voltage log: three-phase")+`<div class="ref">% Unbalance = max deviation from average ÷ average × 100. Prefer under 2% for motors (NEMA MG-1) and investigate above 2–3%; ANSI C84.1 Range A about ±5% at the service.</div><div class="tw ckt"><table><thead><tr><th>Point</th><th>L1-L2</th><th>L2-L3</th><th>L3-L1</th><th>L1-N</th><th>L2-N</th><th>L3-N</th><th>Avg L-L</th><th>% Unbal</th><th>Notes</th></tr></thead><tbody>`+CK_P3.map((n,i)=>`<tr><td>${n}</td>`+[0,1,2,3,4,5].map(j=>`<td>${ckN("ck-t"+i+j)}</td>`).join("")+`<td id="ck-avg${i}">—</td><td id="ck-un${i}">—</td><td>${ckT("ck-n3"+i)}</td></tr>`).join("")+`</tbody></table></div>
+ <label>Phase sequence${ckS("ck-seq",["Not checked","Correct (A-B-C)","Reversed"])}</label><div class="flag" id="ck-3flag" hidden></div></div>`+
+ ckH("5 · Current / load measurements")+`<div class="tw ckt"><table><thead><tr><th>Circuit / phase</th><th>Amps</th><th>Rating (A)</th><th>% of rating</th><th>Notes</th></tr></thead><tbody>`+[0,1,2,3].map(i=>`<tr><td>${ckT("ck-ci"+i)}</td><td>${ckN("ck-ca"+i)}</td><td>${ckN("ck-cr"+i)}</td><td id="ck-cp${i}">—</td><td>${ckT("ck-cn"+i)}</td></tr>`).join("")+`</tbody></table></div><div class="ref">Current imbalance (3φ): prefer under 5–10%. High imbalance often indicates load distribution or single-phasing.</div><div class="flag" id="ck-cflag" hidden></div>`+
+ ckH("6 · Additional diagnostic tests")+`<div class="fields"><label>Insulation resistance (MΩ)${ckN("ck-ir")}</label><label>Grounding / bonding continuity${ckS("ck-gc",["Not tested","Pass","Fail"])}</label><label>GFCI / AFCI function test${ckS("ck-gf",["N/A","Pass","Fail"])}</label><label>Breaker / disconnect operation${ckS("ck-bo",["Not tested","OK","Fault"])}</label><label>Infrared scan (under load ≥ 40% preferred)${ckS("ck-ir2",["No","Yes"])}</label><label>Power quality notes (sags, harmonics, PF)${ckT("ck-pq")}</label></div><div class="flag" id="ck-iflag" hidden></div>`+
+ ckH("7 · Common fault indicators &amp; next steps")+`<div class="tw"><table><thead><tr><th>Symptom</th><th>Likely cause</th><th>Diagnostic action</th></tr></thead><tbody>`+CK_FAULT.map(r=>`<tr>${r.map(c=>`<td style="white-space:normal;min-width:150px">${c}</td>`).join("")}</tr>`).join("")+`</tbody></table></div>`+
+ ckH("8 · Findings, recommendations &amp; sign-off")+`<label>Deficiencies found<textarea id="ck-def" class="ckf"></textarea></label><label>Recommended corrective actions<textarea id="ck-act" class="ckf"></textarea></label><div class="fields"><label>Priority${ckS("ck-pri",["Monitor / trend","Scheduled","Immediate / safety"])}</label><label>Technician signature (typed name)${ckT("ck-sig")}</label><label>Sign-off date<input type="date" id="ck-sd" class="ckf"></label><label>Customer / supervisor acknowledgment${ckT("ck-ack")}</label></div>`;
+const CKKEY="elec-dx-checklist";let CK={};
+try{CK=JSON.parse(localStorage.getItem(CKKEY)||"{}")||{}}catch(e){CK={}}
+function ckLoad(){document.querySelectorAll(".ckf").forEach(el=>{const x=CK[el.id];if(el.type==="checkbox")el.checked=x==="1";else el.value=x!=null?x:(el.tagName==="SELECT"?el.options[0].value:(el.type==="date"&&(el.id==="ck-date")?mtIso(mtToday()):""))})}
+const ckV=id=>parseFloat($(id).value);
+function ckCalc(){
+  const three=$("ck-sys").value==="Three-phase", nom=ckV("ck-nom");
+  $("ck-1ph").hidden=three;$("ck-3ph").hidden=!three;
+  const fl1=[];
+  CK_P1.forEach((n,i)=>{const a=ckV("ck-a"+i),c=ckV("ck-c"+i),m=[];
+    if(!isNaN(c)&&c>=2)m.push("N-G ≥ 2 V");
+    if(!isNaN(a)&&nom&&Math.abs(a-nom)/nom>.05)m.push("L-N outside ±5%");
+    const a0=ckV("ck-a0");$("ck-dv"+i).textContent=i>0&&a0>0&&!isNaN(a)?((a0-a)/a0*100).toFixed(2):"—";
+    $("ck-st1-"+i).textContent=isNaN(a)&&isNaN(c)?"—":m.length?"⚠ "+m.join(", "):"OK"});
+  const nl=ckV("ck-nl"),ul=ckV("ck-ul"),dp=nl>0&&!isNaN(ul)?(nl-ul)/nl*100:NaN;
+  $("ck-dp").value=isNaN(dp)?"":dp.toFixed(2);
+  const df=$("ck-dflag");df.hidden=isNaN(dp)||dp<=3;df.textContent=dp>5?`⚠ ${dp.toFixed(1)}% drop is over 5%.`:`${dp.toFixed(1)}% drop is over the 3% branch-circuit target.`;
+  const f3=[];
+  CK_P3.forEach((n,i)=>{const LL=[0,1,2].map(j=>ckV("ck-t"+i+j));
+    if(LL.some(isNaN)){$("ck-avg"+i).textContent="—";$("ck-un"+i).textContent="—";return}
+    const avg=(LL[0]+LL[1]+LL[2])/3,u=avg?Math.max(...LL.map(x=>Math.abs(x-avg)))/avg*100:0;
+    $("ck-avg"+i).textContent=avg.toFixed(1);$("ck-un"+i).textContent=u.toFixed(2)+(u>5?" ⚠⚠":u>2?" ⚠":"");
+    if(u>2)f3.push(`⚠ ${n}: unbalance ${u.toFixed(2)}%${u>5?" (over 5%: do not run motors)":" (over the 2% preferred for motors)"}.`);
+    if(nom&&Math.abs(avg-nom)/nom>.05)f3.push(`⚠ ${n}: average ${avg.toFixed(1)} V is outside ±5% of ${nom} V.`);
+    if(LL.some(x=>x===0))f3.push(`⚠ ${n}: a 0 V line-to-line reading means an open phase.`)});
+  if($("ck-seq").value==="Reversed")f3.push("⚠ Phase sequence reversed: motors will run backward.");
+  const t=$("ck-3flag");t.hidden=!f3.length;t.innerHTML=f3.join("<br>");
+  const fc=[];
+  [0,1,2,3].forEach(i=>{const a=ckV("ck-ca"+i),r=ckV("ck-cr"+i);
+    if(!isNaN(a)&&r>0){const p=a/r*100;$("ck-cp"+i).textContent=p.toFixed(0)+"%"+(p>100?" ⚠":p>80?" !":"");if(p>100)fc.push(`⚠ ${lgEsc($("ck-ci"+i).value||"Row "+(i+1))}: ${p.toFixed(0)}% of rating is overloaded.`);else if(p>80)fc.push(`${lgEsc($("ck-ci"+i).value||"Row "+(i+1))}: ${p.toFixed(0)}% of rating is over the 80% continuous-load limit.`)}
+    else $("ck-cp"+i).textContent="—"});
+  const cf=$("ck-cflag");cf.hidden=!fc.length;cf.innerHTML=fc.join("<br>");
+  const ir=ckV("ck-ir"),fi=[];if(!isNaN(ir)&&ir<1)fi.push("⚠ Insulation reading under 1 MΩ: investigate before energizing (typical healthy is above 1 MΩ; trend over time).");
+  if($("ck-gc").value==="Fail")fi.push("⚠ Grounding/bonding continuity failed.");if($("ck-gf").value==="Fail")fi.push("⚠ GFCI/AFCI function test failed.");if($("ck-bo").value==="Fault")fi.push("⚠ Breaker/disconnect operation fault.");
+  const fl=$("ck-iflag");fl.hidden=!fi.length;fl.innerHTML=fi.join("<br>");
+}
+function ckReport(){
+  const g=id=>{const e=$(id);return e.type==="checkbox"?(e.checked?"X":"_"):e.value.trim()};
+  const L=["ELECTRICAL DIAGNOSTIC CHECKLIST",`Job/site: ${g("ck-site")} | Date: ${g("ck-date")} | Tech: ${g("ck-tech")} | WO: ${g("ck-wo")}`,`Equipment: ${g("ck-eq")} | ${g("ck-sys")} | Nominal ${g("ck-nom")} V | ${g("ck-load")}`,"","SAFETY"].concat(CK_SAFE.map((t,i)=>`[${g("ck-s"+i)}] ${t}`),["","VISUAL"],CK_VIS.map((t,i)=>`[${g("ck-v"+i)}] ${t}`),[""]);
+  if($("ck-sys").value==="Three-phase"){L.push("VOLTAGE (3-phase) L1-L2, L2-L3, L3-L1, L1-N, L2-N, L3-N | avg | % unbal");CK_P3.forEach((n,i)=>L.push(`${n}: ${[0,1,2,3,4,5].map(j=>g("ck-t"+i+j)||"-").join(", ")} | ${$("ck-avg"+i).textContent} | ${$("ck-un"+i).textContent} ${g("ck-n3"+i)}`));L.push("Phase sequence: "+g("ck-seq"))}
+  else{L.push("VOLTAGE (single-phase) L-N, L-G, N-G | drop vs service %");CK_P1.forEach((n,i)=>L.push(`${n}: ${g("ck-a"+i)||"-"}, ${g("ck-b"+i)||"-"}, ${g("ck-c"+i)||"-"} | ${$("ck-dv"+i).textContent} | ${$("ck-st1-"+i).textContent} ${g("ck-n1"+i)}`));L.push(`Drop: no-load ${g("ck-nl")} V, under-load ${g("ck-ul")} V, ${g("ck-dp")}%`)}
+  L.push("","CURRENT");[0,1,2,3].forEach(i=>{if(g("ck-ci"+i)||g("ck-ca"+i))L.push(`${g("ck-ci"+i)}: ${g("ck-ca"+i)} A of ${g("ck-cr"+i)} A (${$("ck-cp"+i).textContent}) ${g("ck-cn"+i)}`)});
+  L.push("",`TESTS: IR ${g("ck-ir")} MΩ | Grounding ${g("ck-gc")} | GFCI/AFCI ${g("ck-gf")} | Breaker ${g("ck-bo")} | IR scan ${g("ck-ir2")} | PQ: ${g("ck-pq")}`,"",`Deficiencies: ${g("ck-def")}`,`Corrective actions: ${g("ck-act")}`,`Priority: ${g("ck-pri")}`,`Signed: ${g("ck-sig")} ${g("ck-sd")} | Acknowledged: ${g("ck-ack")}`);
+  return L.join("\n")}
+ckLoad();
+$("ck-root").addEventListener("input",e=>{const el=e.target;if(!el.id||!el.classList.contains("ckf"))return;CK[el.id]=el.type==="checkbox"?(el.checked?"1":"0"):el.value;try{localStorage.setItem(CKKEY,JSON.stringify(CK))}catch(x){}});
+$("ck-root").addEventListener("change",e=>{const el=e.target;if(el.id&&el.classList.contains("ckf")&&el.type==="checkbox"){CK[el.id]=el.checked?"1":"0";try{localStorage.setItem(CKKEY,JSON.stringify(CK))}catch(x){}}});
+$("ck-new").addEventListener("click",()=>{if(confirm("Clear this checklist and start a new one?")){CK={};try{localStorage.removeItem(CKKEY)}catch(e){}ckLoad();ckCalc()}});
+$("ck-copy").addEventListener("click",()=>{const t=ckReport(),done=()=>{$("ck-copy").textContent="Copied";setTimeout(()=>$("ck-copy").textContent="Copy report as text",1500)};
+  if(navigator.clipboard)navigator.clipboard.writeText(t).then(done,()=>prompt("Copy this report:",t));else prompt("Copy this report:",t)});
+const all=()=>{ckCalc();dxCalc();gec();bj();egc();rod();par2();genLoad();genOut();genGround();motorCalc();loadCalc();xfCalc();sbCalc();vdTab();evCalc();cfCalc();bxCalc();pbCalc();pvCalc();wcCalc();pieCalc();waCalc();clCalc();ccCalc(false);spCalc();mcCalc()};
 document.querySelectorAll("select,input").forEach(e=>e.addEventListener("input",all));
 $("tool").addEventListener("change",e=>{const b=document.querySelector(`nav button[data-p="${e.target.value}"]`);if(b){b.click();window.scrollTo(0,0)}});
 document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>{
