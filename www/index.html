@@ -1266,7 +1266,32 @@ footer{color:var(--muted);font-size:.82rem}
   </div>
 
   <div class="block">
-    <h3>J · Symptom checklist</h3>
+    <h3>J · Motor maintenance schedule</h3>
+    <div class="fields">
+      <label>Motor tag<input id="mt-id" type="text" list="mt-tags" placeholder="e.g. AHU-3 supply fan" autocomplete="off"><datalist id="mt-tags"></datalist></label>
+      <label>Task<select id="mt-task"></select></label>
+      <label>Every (months)<input id="mt-int" type="number" min="1" max="120" step="1" value="6" inputmode="numeric"></label>
+      <label>Last done<input id="mt-last" type="date"></label>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" id="mt-add" type="button">Add task</button>
+      <button class="btn" id="mt-copy" type="button">Copy as CSV</button>
+      <button class="btn" id="mt-clear" type="button">Clear all</button>
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>Due</th><th>Motor / task</th><th>Status</th><th></th></tr></thead>
+      <tbody id="mt-rows"></tbody>
+    </table></div>
+    <div class="flag" id="mt-flag" hidden></div>
+    <ul class="notes">
+      <li>Intervals are typical starting points only. Set them from the manufacturer's manual, run hours, environment and how critical the motor is. Re-greasing in particular depends on frame size, speed and duty.</li>
+      <li>Tap Done to set Last done to today and move the due date forward. Tasks are sorted with the most overdue first; anything due within 30 days is marked.</li>
+      <li>Saved only on this device (browser/app storage). Use Copy as CSV to back it up.</li>
+    </ul>
+  </div>
+
+  <div class="block">
+    <h3>K · Symptom checklist</h3>
     <div class="fields"><label>Symptom<select id="dx-sym"></select></label></div>
     <ol class="notes" id="dx-sym-out"></ol>
   </div>
@@ -2987,6 +3012,7 @@ function npSave(){try{localStorage.setItem(NPKEY,JSON.stringify(NPLOG))}catch(e)
 function renderNp(){
   $("np-rows").innerHTML=NPLOG.map((m,i)=>{const sub=[m.mfr,m.mod,m.fr,m.loc,m.enc,m.ins&&"Ins "+m.ins,m.code&&"Code "+m.code,m.hz!=="60"&&m.hz+" Hz",m.ph==="1"&&"1φ",m.sf&&"SF "+m.sf,m.eff&&m.eff+"% eff",m.pf&&"PF "+m.pf,m.n].filter(Boolean).map(lgEsc).join(" · ");
     return`<tr><td>${lgEsc(m.id||"—")}${sub?`<br><small>${sub}</small>`:""}</td><td>${lgEsc(m.hp||"—")}</td><td>${lgEsc(m.v||"—")}</td><td>${lgEsc(m.fla||"—")}</td><td>${lgEsc(m.rpm||"—")}</td><td><button class="btn" data-npuse="${i}" type="button">Use</button> <button class="btn" data-npdel="${i}" type="button">✕</button></td></tr>`}).join("")||`<tr><td colspan="6">No motors saved yet.</td></tr>`;
+  if(typeof mtTags==="function")mtTags();
 }
 $("np-add").addEventListener("click",()=>{const m={};NPF.forEach(([k,id])=>m[k]=$(id).value.trim());if(!m.id&&!m.hp&&!m.fla)return;
   NPLOG.push(m);npSave();NPF.forEach(([k,id])=>{if(["id","loc","mod","fla","rpm","hp","n","eff","pf","enc","fr","mfr"].includes(k))$(id).value=""});renderNp()});
@@ -3002,6 +3028,37 @@ $("np-copy").addEventListener("click",()=>{const q=t=>'"'+String(t).replace(/"/g
   const done=()=>{$("np-copy").textContent="Copied";setTimeout(()=>$("np-copy").textContent="Copy as CSV",1500)};
   if(navigator.clipboard)navigator.clipboard.writeText(csv).then(done,()=>prompt("Copy this CSV:",csv));else prompt("Copy this CSV:",csv)});
 renderNp();
+// ----- motor maintenance schedule -----
+let MTLOG=[];const MTKEY="elec-dx-maint";
+try{MTLOG=JSON.parse(localStorage.getItem(MTKEY)||"[]");if(!Array.isArray(MTLOG))MTLOG=[]}catch(e){MTLOG=[]}
+const MT_TASKS=[["Lubricate bearings",6],["Insulation resistance / PI test",12],["Winding resistance check",12],["Vibration check",6],["Thermal scan (connections, motor)",12],["Tighten & inspect connections",12],["Clean motor / airways",6],["Check alignment, belts, coupling",6],["Check overload relay setting & starter contacts",12],["Check starting & running current",12]];
+MT_TASKS.forEach((t,i)=>$("mt-task").add(new Option(t[0],i)));$("mt-task").add(new Option("Other","x"));
+$("mt-task").addEventListener("change",()=>{const t=MT_TASKS[+$("mt-task").value];if(t)$("mt-int").value=t[1]});
+function mtTags(){$("mt-tags").innerHTML=NPLOG.map(m=>m.id).filter(Boolean).map(t=>`<option value="${lgEsc(t)}">`).join("")}
+mtTags();
+const mtToday=()=>{const d=new Date();return new Date(d.getFullYear(),d.getMonth(),d.getDate())};
+const mtParse=t=>{const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(t||"");return m?new Date(+m[1],+m[2]-1,+m[3]):null};
+const mtIso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+function mtSave(){try{localStorage.setItem(MTKEY,JSON.stringify(MTLOG))}catch(e){}}
+function mtDue(t){const l=mtParse(t.last)||mtToday();return new Date(l.getFullYear(),l.getMonth()+t.int,l.getDate())}
+function renderMt(){
+  const now=mtToday(),rows=MTLOG.map((t,i)=>{const due=mtDue(t);return{t,i,due,days:Math.round((due-now)/864e5)}}).sort((a,b)=>a.days-b.days);
+  const over=rows.filter(r=>r.days<0), soon=rows.filter(r=>r.days>=0&&r.days<=30);
+  $("mt-rows").innerHTML=rows.map(r=>`<tr><td>${mtIso(r.due)}</td><td>${lgEsc(r.t.id||"—")}<br><small>${lgEsc(r.t.task)} · every ${r.t.int} mo${r.t.last?" · last "+lgEsc(r.t.last):" · never done"}</small></td><td>${r.days<0?"⚠ overdue "+(-r.days)+" d":r.days<=30?"due in "+r.days+" d":"OK"}</td><td><button class="btn" data-mtdone="${r.i}" type="button">Done</button> <button class="btn" data-mtdel="${r.i}" type="button">✕</button></td></tr>`).join("")||`<tr><td colspan="4">No tasks scheduled yet.</td></tr>`;
+  const f=$("mt-flag"),m=[];if(over.length)m.push(`⚠ ${over.length} overdue task${over.length>1?"s":""}.`);if(soon.length)m.push(`${soon.length} due within 30 days.`);f.hidden=!m.length;f.innerHTML=m.join("<br>");
+}
+$("mt-last").value=mtIso(mtToday());
+$("mt-add").addEventListener("click",()=>{const k=$("mt-task").value,t=MT_TASKS[+k],int=Math.max(1,Math.min(120,parseInt($("mt-int").value)||6));
+  MTLOG.push({id:$("mt-id").value.trim(),task:t?t[0]:"Other",int,last:$("mt-last").value||""});mtSave();renderMt()});
+$("mt-rows").addEventListener("click",e=>{const d=e.target.dataset.mtdel,n=e.target.dataset.mtdone;
+  if(d!=null){MTLOG.splice(+d,1);mtSave();renderMt()}
+  if(n!=null){MTLOG[+n].last=mtIso(mtToday());mtSave();renderMt()}});
+$("mt-clear").addEventListener("click",()=>{if(MTLOG.length&&confirm("Delete every maintenance task on this device?")){MTLOG=[];mtSave();renderMt()}});
+$("mt-copy").addEventListener("click",()=>{const q=t=>'"'+String(t).replace(/"/g,'""')+'"';
+  const csv=["motor,task,every_months,last_done,next_due"].concat(MTLOG.map(t=>[q(t.id),q(t.task),t.int,t.last,mtIso(mtDue(t))].join(","))).join("\n");
+  const done=()=>{$("mt-copy").textContent="Copied";setTimeout(()=>$("mt-copy").textContent="Copy as CSV",1500)};
+  if(navigator.clipboard)navigator.clipboard.writeText(csv).then(done,()=>prompt("Copy this CSV:",csv));else prompt("Copy this CSV:",csv)});
+renderMt();
 const all=()=>{dxCalc();gec();bj();egc();rod();par2();genLoad();genOut();genGround();motorCalc();loadCalc();xfCalc();sbCalc();vdTab();evCalc();cfCalc();bxCalc();pbCalc();pvCalc();wcCalc();pieCalc();waCalc();clCalc();ccCalc(false);spCalc();mcCalc()};
 document.querySelectorAll("select,input").forEach(e=>e.addEventListener("input",all));
 $("tool").addEventListener("change",e=>{const b=document.querySelector(`nav button[data-p="${e.target.value}"]`);if(b){b.click();window.scrollTo(0,0)}});
