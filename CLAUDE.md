@@ -8,7 +8,7 @@ Field calculator for electricians, built for an electrical contracting business 
 - `www/index.html` — the whole app: markup, CSS and JS in one file (~200 KB). No build step, no framework.
 - `www/fonts/` — bundled woff2 fonts (Barlow, Barlow Condensed, JetBrains Mono, from @fontsource; OFL). No network fonts: the app must work fully offline.
 - `www/manifest.webmanifest` — PWA name ("Elec Calc"), colors, icons, shortcuts.
-- `www/sw.js` — PWA offline cache. **Bump `VERSION` (currently `elec-calc-v22`) every time anything in `www/` changes**, and add any new asset to its `SHELL` list.
+- `www/sw.js` — PWA offline cache. **Bump `VERSION` (currently `elec-calc-v23`) every time anything in `www/` changes**, and add any new asset to its `SHELL` list.
 - `www/icons/` — PWA icons (192/512, maskable, apple-touch, favicon).
 - `ios/` — Capacitor-generated Xcode project (Swift Package Manager, no CocoaPods). App icon: `ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png` (1024×1024, opaque). Home-screen name `CFBundleDisplayName` = "Elec Calc" in `ios/App/App/Info.plist`.
 - `capacitor.config.ts` — appId `com.levine.electricalcalculator`, appName "Electrical Calculator", webDir `www`.
