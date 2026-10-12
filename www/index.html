@@ -1204,7 +1204,32 @@ footer{color:var(--muted);font-size:.82rem}
   </div>
 
   <div class="block">
-    <h3>H · Symptom checklist</h3>
+    <h3>H · Motor starting current check</h3>
+    <div class="fields">
+      <label>Horsepower<input id="sc-hp" type="number" min="0" step="any" value="40" inputmode="decimal"></label>
+      <label>Voltage (L-L)<input id="sc-v" type="number" min="1" step="any" value="460" inputmode="decimal"></label>
+      <label>Nameplate FLA (A)<input id="sc-fla" type="number" min="0" step="any" value="52" inputmode="decimal"></label>
+      <label>NEMA code letter<select id="sc-code"></select></label>
+      <label>Nameplate locked-rotor amps (0 = use code letter)<input id="sc-lra" type="number" min="0" step="any" value="0" inputmode="decimal"></label>
+      <label>Starter<select id="sc-st"><option value="1" selected>Across-the-line (full voltage)</option><option value="0.33">Wye-delta (about 1/3)</option><option value="0.42">Autotransformer, 65% tap (0.65&sup2;)</option><option value="0.25">Autotransformer, 50% tap (0.50&sup2;)</option><option value="0">Soft starter / VFD (skip LRA compare)</option></select></label>
+      <label>Measured starting peak (A)<input id="sc-ipk" type="number" min="0" step="any" value="330" inputmode="decimal"></label>
+      <label>Time to reach speed (s)<input id="sc-t" type="number" min="0" step="any" value="4" inputmode="decimal"></label>
+      <label>Voltage before start (V)<input id="sc-vb" type="number" min="0" step="any" value="472" inputmode="decimal"></label>
+      <label>Lowest voltage during start (V)<input id="sc-va" type="number" min="0" step="any" value="431" inputmode="decimal"></label>
+      <label>Overload relay trip class<select id="sc-cls"><option value="10">Class 10</option><option value="20" selected>Class 20</option><option value="30">Class 30</option></select></label>
+    </div>
+    <div class="result" id="sc-out"></div>
+    <div class="flag" id="sc-flag" hidden></div>
+    <pre class="calc" id="sc-c"></pre>
+    <ul class="notes">
+      <li>Code letters are the NEMA MG1 locked-rotor kVA per HP ranges on the nameplate. Use the nameplate LRA when it is shown.</li>
+      <li>Read the starting peak with a clamp meter that has an inrush/peak-hold mode. The first half-cycle can be higher than the value the meter averages.</li>
+      <li>Branch-circuit short-circuit protection for motors is sized from 430.52 (inverse-time breakers up to 250% of FLC, up to 400% if that will not carry the start), not from the starting current. Use the Motors calculator.</li>
+    </ul>
+  </div>
+
+  <div class="block">
+    <h3>I · Symptom checklist</h3>
     <div class="fields"><label>Symptom<select id="dx-sym"></select></label></div>
     <ol class="notes" id="dx-sym-out"></ol>
   </div>
@@ -2786,6 +2811,8 @@ const DX_SYM=[
 ];
 DX_SYM.forEach((s,i)=>$("dx-sym").add(new Option(s[0],i)));
 SIZES.forEach(([s])=>$("dx-dsz").add(new Option(label(s),s)));$("dx-dsz").value="12";
+const DX_CODE=[["A",0,3.14],["B",3.15,3.54],["C",3.55,3.99],["D",4,4.49],["E",4.5,4.99],["F",5,5.59],["G",5.6,6.29],["H",6.3,7.09],["J",7.1,7.99],["K",8,8.99],["L",9,9.99],["M",10,11.19],["N",11.2,12.49],["P",12.5,13.99],["R",14,15.99],["S",16,17.99],["T",18,19.99],["U",20,22.39],["V",22.4,null]];
+DX_CODE.forEach((c,i)=>$("sc-code").add(new Option(c[0]+" ("+c[1]+(c[2]==null?"+":"–"+c[2])+" kVA/HP)",i)));$("sc-code").value=7;
 function dxFlags(id,arr){const f=$(id);f.hidden=!arr.length;f.innerHTML=arr.join("<br>")}
 function dxCalc(){
   // A · voltage
@@ -2865,7 +2892,27 @@ function dxCalc(){
    $("dx-w-out").innerHTML=plate("Average",avg.toFixed(4),"Ω",true)+plate("Imbalance",unb.toFixed(1),"%")+(B?plate("vs baseline",(bdev>=0?"+":"")+bdev.toFixed(1),"% @ "+T+" °F"):"");
    $("dx-w-c").textContent=`Average = (${R.join(" + ")}) ÷ 3 = ${avg.toFixed(4)} Ω\nImbalance = max deviation ${mx.toFixed(4)} ÷ ${avg.toFixed(4)} = ${unb.toFixed(2)}%`+(B?`\nBaseline corrected to ${T} °F (copper) = ${B} × (234.5 + ${cT.toFixed(1)}) ÷ (234.5 + ${cb.toFixed(1)}) = ${base.toFixed(4)} Ω\nDeviation = (${avg.toFixed(4)} − ${base.toFixed(4)}) ÷ ${base.toFixed(4)} = ${bdev.toFixed(1)}%`:"")+"\nMotor must be locked out, leads disconnected from the drive/starter, and at rest temperature.";
    dxFlags("dx-w-flag",fl)}
-  // G · symptoms
+  // H · starting current
+  {const HP=v("sc-hp"), V=v("sc-v"), FLA=v("sc-fla"), LRn=v("sc-lra"), f=+$("sc-st").value, Ipk=v("sc-ipk"), ts=v("sc-t"), vb=v("sc-vb"), va=v("sc-va"), cls=+$("sc-cls").value, fl=[];
+   const [letter,lo,hi]=DX_CODE[+$("sc-code").value], k=Math.sqrt(3), cv=HP*1000/(k*V);
+   const LRlo=LRn||(V?lo*cv:0), LRhi=LRn||(hi==null?LRlo*1.15:hi*cv), eLo=LRlo*f, eHi=LRhi*f, mult=FLA?Ipk/FLA:0;
+   let txt=LRn?`LRA = ${LRn} A (nameplate)`:`LRA = HP × kVA/HP × 1000 ÷ (1.732 × V) = ${HP} × ${lo}–${hi==null?lo+"+":hi} × 1000 ÷ (1.732 × ${V}) = ${r0(LRlo)}–${r0(LRhi)} A (code ${letter})`;
+   if(f>0){txt+=`\nExpected peak = LRA × ${f} = ${r0(eLo)}–${r0(eHi)} A`;
+     if(Ipk&&Ipk>eHi*1.15)fl.push(`⚠ Measured ${r0(Ipk)} A is above the expected ${r0(eHi)} A. Check for low voltage, a jammed load, shorted turns or a bad connection feeding the starter.`);
+     else if(Ipk&&Ipk<eLo*.6)fl.push(`Measured ${r0(Ipk)} A is well under the expected ${r0(eLo)} A. Fine if the meter missed the peak; if it stays low the motor may be starting under a light load or a phase may be open.`)}
+   if(FLA&&Ipk)txt+=`\nMeasured = ${r0(Ipk)} ÷ ${FLA} FLA = ${mult.toFixed(1)}× FLA`;
+   const dip=vb?(vb-va)/vb*100:0;
+   if(vb&&va)txt+=`\nVoltage dip = (${vb} − ${va}) ÷ ${vb} = ${dip.toFixed(1)}%`;
+   if(vb&&va&&dip>15)fl.push(`⚠ Voltage dips ${dip.toFixed(1)}% at start: lights will flicker and contactors may drop out. Check the source, feeder size/length (voltage drop at starting current) and connections.`);
+   else if(vb&&va&&dip>10)fl.push(`Voltage dips ${dip.toFixed(1)}% at start: above the usual 10% guideline.`);
+   if(va&&V&&va<V*.85)fl.push("⚠ Voltage falls below 85% of rated at start: the motor may stall or fail to accelerate.");
+   if(ts&&FLA&&mult>=5.5&&ts>cls)fl.push(`⚠ ${ts} s start at about ${mult.toFixed(1)}× FLA is longer than a Class ${cls} relay's trip time at 600% (up to ${cls} s): the overload relay will probably trip on start. Check the load or use a longer class.`);
+   if(ts>0)txt+=`\nStart time ${ts} s · overload relay Class ${cls} trips within ${cls} s at 600% of its setting`;
+   if(Ipk&&ts&&Ipk>FLA*8&&ts>6)fl.push("⚠ High current for a long time: a stall or hard-starting load. Do not repeat starts; the motor limits are a few starts per hour.");
+   $("sc-out").innerHTML=plate("Expected peak",f>0?r0(eLo)+(eHi-eLo>1?"–"+r0(eHi):""):"—","A",true)+plate("Measured",r0(Ipk),"A · "+mult.toFixed(1)+"× FLA")+(vb&&va?plate("Voltage dip",dip.toFixed(1),"%"):"")+plate("Start time",ts,"s");
+   $("sc-c").textContent=txt;
+   dxFlags("sc-flag",fl)}
+  // I · symptoms
   $("dx-sym-out").innerHTML=DX_SYM[+$("dx-sym").value][1].map(t=>`<li>${t}</li>`).join("");
 }
 // ----- insulation test log -----
