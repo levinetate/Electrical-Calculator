@@ -1160,7 +1160,22 @@ footer{color:var(--muted);font-size:.82rem}
   </div>
 
   <div class="block">
-    <h3>F · Symptom checklist</h3>
+    <h3>F · Three-phase motor winding resistance</h3>
+    <div class="fields">
+      <label>T1–T2 (&Omega;)<input id="dx-w1" type="number" min="0" step="any" value="0.512" inputmode="decimal"></label>
+      <label>T2–T3 (&Omega;)<input id="dx-w2" type="number" min="0" step="any" value="0.515" inputmode="decimal"></label>
+      <label>T1–T3 (&Omega;)<input id="dx-w3" type="number" min="0" step="any" value="0.531" inputmode="decimal"></label>
+      <label>Winding temp now (&deg;F)<input id="dx-wt" type="number" step="any" value="80" inputmode="decimal"></label>
+      <label>Baseline average (&Omega;, optional)<input id="dx-wb" type="number" min="0" step="any" value="0" inputmode="decimal"></label>
+      <label>Baseline temp (&deg;F)<input id="dx-wbt" type="number" step="any" value="75" inputmode="decimal"></label>
+    </div>
+    <div class="result" id="dx-w-out"></div>
+    <div class="flag" id="dx-w-flag" hidden></div>
+    <pre class="calc" id="dx-w-c"></pre>
+  </div>
+
+  <div class="block">
+    <h3>G · Symptom checklist</h3>
     <div class="fields"><label>Symptom<select id="dx-sym"></select></label></div>
     <ol class="notes" id="dx-sym-out"></ol>
   </div>
@@ -2735,7 +2750,7 @@ const DX_SYM=[
  ["Receptacle or switch is hot / discolored",["Shut off and inspect for burned insulation or a loose terminal. Back-stabbed connections are a common failure.","Measure drop through the device under load (Section D). More than a few tenths of a volt across one device means a bad connection.","Check that the device rating suits the load and that the wire size suits the breaker (240.4(D))."]],
  ["GFCI or AFCI keeps tripping",["Unplug everything downstream and reset. If it holds, plug loads back in one at a time.","Neutral shared between circuits, or neutral-to-ground contact on the load side.","Ground leakage: megger the circuit with devices disconnected (Section C). Moisture in outdoor or damp boxes is the most common cause.","Some older motors and heaters leak enough to trip a GFCI; check the leakage current."]],
  ["Tingle or shock on metal parts",["Treat as unsafe. Isolate the equipment, then check for voltage from the frame to a known ground and to the neutral.","Check the EGC continuity back to the panel, and the neutral-to-ground bond (only at the service or separately derived system, 250.24, 250.30).","Open neutral on the circuit can energize the metal parts of grounded appliances.","Check for reversed polarity and for damaged cord or element insulation (Sections C and E)."]],
- ["Three-phase motor hot, noisy or humming",["Measure all three line voltages (Section A) and currents (Section B): single-phasing shows one line near zero and the other two high.","Check for voltage unbalance above 1% (NEMA MG1 says derate) and fuses, contactor contacts and overload relays for an open phase.","Check winding insulation resistance and PI (Section C).","Check bearings, coupling alignment and the cooling airflow."]],
+ ["Three-phase motor hot, noisy or humming",["Measure all three line voltages (Section A) and currents (Section B): single-phasing shows one line near zero and the other two high.","Check for voltage unbalance above 1% (NEMA MG1 says derate) and fuses, contactor contacts and overload relays for an open phase.","Check winding insulation resistance and PI (Section C) and winding resistance (Section F).","Check bearings, coupling alignment and the cooling airflow."]],
  ["Motor draws more than nameplate",["High or low voltage (Section A); motors draw more amps at low voltage.","Mechanical load: jam, wrong belt tension, fouled pump or fan, bad bearing.","Compare against nameplate FLA and the service factor limit (Section B).","Check power factor correction capacitors and VFD output settings."]],
  ["Heater or oven does not heat",["Confirm voltage at the element terminals with power on, then power off and ohm the element (Section E).","Test the thermostat, high-limit and contactor or relay.","Open element reads infinite ohms; shorted-turn or partial failure reads low."]],
  ["Equipment dead, no power",["Check the breaker, since a tripped breaker can look 'on' in the middle position.","Check for voltage at the panel, the disconnect, the load terminals: work toward the load until the voltage disappears.","Look for tripped GFCIs upstream, blown fuses, and loose neutral or hot at splice points.","Check the control circuit separately: transformer fuse, E-stop, overload contacts."]]
@@ -2810,7 +2825,18 @@ function dxCalc(){
    $("dx-e-out").innerHTML=plate("Expected",exp.toFixed(1),"Ω (hot)",true)+plate("Measured",R,"Ω")+plate("Deviation",(dev>=0?"+":"")+dev.toFixed(0),"%")+plate("Rated current",I.toFixed(1),"A");
    $("dx-e-c").textContent=`R = V² ÷ W = ${Ve}² ÷ ${W} = ${exp.toFixed(2)} Ω\nI = W ÷ V = ${I.toFixed(2)} A\nDeviation = (${R} − ${exp.toFixed(2)}) ÷ ${exp.toFixed(2)} = ${dev.toFixed(1)}%\nCompare cold ohms to the rating within the usual tolerance (about ±10%).`;
    dxFlags("dx-e-flag",fl)}
-  // F · symptoms
+  // F · winding resistance
+  {const R=[v("dx-w1"),v("dx-w2"),v("dx-w3")], avg=(R[0]+R[1]+R[2])/3, mx=Math.max(...R.map(x=>Math.abs(x-avg))), unb=avg?mx/avg*100:0, fl=[];
+   const tF=parseFloat($("dx-wt").value), tb=parseFloat($("dx-wbt").value), B=v("dx-wb"), T=isNaN(tF)?77:tF, Tb=isNaN(tb)?77:tb;
+   const cT=(T-32)/1.8, cb=(Tb-32)/1.8, base=B*(234.5+cT)/(234.5+cb), bdev=B&&base?(avg-base)/base*100:0;
+   if(R.some(x=>x===0))fl.push("⚠ A 0 Ω reading: shorted lead or a meter that cannot read this low. Use a milliohm/micro-ohm meter (a standard multimeter is not accurate here).");
+   else if(unb>5)fl.push(`⚠ Winding imbalance ${unb.toFixed(1)}%: above 5%. Suspect shorted turns, a loose or burnt lead connection, or an open parallel path.`);
+   else if(unb>1)fl.push(`Imbalance ${unb.toFixed(1)}%: above 1%. Re-check lead connections and meter clip contact, then compare with the baseline or the manufacturer's data.`);
+   if(B&&Math.abs(bdev)>5)fl.push(`⚠ Average is ${bdev.toFixed(1)}% from the baseline after temperature correction. ${bdev>0?"High: loose connection or damaged conductor.":"Low: shorted turns."}`);
+   $("dx-w-out").innerHTML=plate("Average",avg.toFixed(4),"Ω",true)+plate("Imbalance",unb.toFixed(1),"%")+(B?plate("vs baseline",(bdev>=0?"+":"")+bdev.toFixed(1),"% @ "+T+" °F"):"");
+   $("dx-w-c").textContent=`Average = (${R.join(" + ")}) ÷ 3 = ${avg.toFixed(4)} Ω\nImbalance = max deviation ${mx.toFixed(4)} ÷ ${avg.toFixed(4)} = ${unb.toFixed(2)}%`+(B?`\nBaseline corrected to ${T} °F (copper) = ${B} × (234.5 + ${cT.toFixed(1)}) ÷ (234.5 + ${cb.toFixed(1)}) = ${base.toFixed(4)} Ω\nDeviation = (${avg.toFixed(4)} − ${base.toFixed(4)}) ÷ ${base.toFixed(4)} = ${bdev.toFixed(1)}%`:"")+"\nMotor must be locked out, leads disconnected from the drive/starter, and at rest temperature.";
+   dxFlags("dx-w-flag",fl)}
+  // G · symptoms
   $("dx-sym-out").innerHTML=DX_SYM[+$("dx-sym").value][1].map(t=>`<li>${t}</li>`).join("");
 }
 const all=()=>{dxCalc();gec();bj();egc();rod();par2();genLoad();genOut();genGround();motorCalc();loadCalc();xfCalc();sbCalc();vdTab();evCalc();cfCalc();bxCalc();pbCalc();pvCalc();wcCalc();pieCalc();waCalc();clCalc();ccCalc(false);spCalc();mcCalc()};
